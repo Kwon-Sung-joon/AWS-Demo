@@ -44,7 +44,7 @@ public class AwsController {
 		model.addAttribute("username", resultMap.get("username"));
 		
 		
-		return "login";
+		return "main";
 	}	
 	@RequestMapping("/startEc2")
 	public String startEc2(Model model) {
