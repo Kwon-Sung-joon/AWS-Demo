@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>main</title>
+</head>
+
+<body>
+----------------------------------------------------------- <br>
+User Name : {{#userName}} {{.}} {{/userName}} <br>
+Refresh Token : {{#refreshToken}} {{.}} {{/refreshToken}} <br>
+----------------------------------------------------------- <br>
+Status       : {{#status}} {{.}} {{/status}} <br>
+Start Time   : {{#startTime}} {{.}} {{/startTime}} <br>
+End Time     : {{#endTime}} {{.}} {{/endTime}} <br>
+----------------------------------------------------------- <br>
+
+<a href="http://localhost:8080/createUser">IAM유저 생성</a><br>
+
+<a href="http://localhost:8080/startEc2">EC2 Start</a><br>
+<a href="http://localhost:8080/stopEc2">EC2 Stop</a><br>
+
+<a href="http://localhost:8080/terminteEc2">EC2 Terminate</a><br>
+
+</body>
+
+</html>

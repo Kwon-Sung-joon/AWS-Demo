@@ -1,0 +1,15 @@
+#spring configuration
+spring:
+  application:
+    name: cloudApi
+  mustache:
+    suffix: .html
+    
+#custom configuration (코그니토 예시)
+
+application:
+  aws:
+    your_domain: qwerty.auth.ap-northeast-2.amazoncognito.com 
+    client_id: 7og2tl71nqkq4j279qrmkj8pg4
+    redirect_uri: http://localhost:8080/cognito/
+    
