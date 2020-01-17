@@ -35,7 +35,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		
+
 		<!-- Spring Boot 기본 WAS 이면서 Tomcat 보다 빠르고 안정적 -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -61,37 +61,32 @@
 
 
 		<!-- aws sdk for java bom (개별 모둘 지정) -->
-		
-		<!--  aws sdk iam -->
+
+		<!-- aws sdk iam -->
 		<dependency>
 			<groupId>com.amazonaws</groupId>
 			<artifactId>aws-java-sdk-iam</artifactId>
 			<version>1.11.707</version>
 		</dependency>
-				<dependency>
+
+		<!-- aws sdk ec2 -->
+		<dependency>
 			<groupId>com.amazonaws</groupId>
 			<artifactId>aws-java-sdk-ec2</artifactId>
 			<version>1.11.707</version>
 		</dependency>
-		
-		
-		<!--  aws sdk ec2 -->
+
+
+		<!-- aws sdk ec2 -->
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>ec2</artifactId>
 			<version>2.10.49</version>
 		</dependency>
 
-		<!-- aws sdk 모든 모듈 가져오기. aws에서 추천하지않음 
-		<dependencies> 
-		<dependency> 
-			<groupId>com.amazonaws</groupId> 
-				<artifactId>aws-java-sdk</artifactId> 
-				<version>1.11.327</version> 
-			</dependency> 
-	
-		</dependencies> 
-		-->
+		<!-- aws sdk 모든 모듈 가져오기. aws에서 추천하지않음 <dependencies> <dependency> <groupId>com.amazonaws</groupId> 
+			<artifactId>aws-java-sdk</artifactId> <version>1.11.327</version> </dependency> 
+			</dependencies> -->
 
 
 		<!-- ConfigurationProperties 어노테이션 사용 -->

@@ -15,28 +15,38 @@ public class ApplicationProperties {
 
 	public static class Aws {
 		
-		private String clientId;
-		private String redirectUri;
-		private String yourDomain;
+		private String username;
+		private String accessKeyId;
+		private String accessKeySecret;
+		private String policy_arn;
 		
-		public String getClientId() {
-			return clientId;
+		
+		
+		public String getPolicy_arn() {
+			return policy_arn;
 		}
-		public void setClientId(String clientId) {
-			this.clientId = clientId;
+		public void setPolicy_arn(String policy_arn) {
+			this.policy_arn = policy_arn;
 		}
-		public String getRedirectUri() {
-			return redirectUri;
+		public String getUsername() {
+			return username;
 		}
-		public void setRedirectUri(String redirectUri) {
-			this.redirectUri = redirectUri;
+		public void setUsername(String username) {
+			this.username = username;
 		}
 
-		public String getYourDomain() {
-			return yourDomain;
+		public String getAccessKeyId() {
+			return accessKeyId;
 		}
-		public void setYourDomain(String yourDomain) {
-			this.yourDomain = yourDomain;
+		public void setAccessKeyId(String accessKeyId) {
+			this.accessKeyId = accessKeyId;
 		}
+		public String getAccessKeySecret() {
+			return accessKeySecret;
+		}
+		public void setAccessKeySecret(String accessKeySecret) {
+			this.accessKeySecret = accessKeySecret;
+		}
+		
 	}
 }

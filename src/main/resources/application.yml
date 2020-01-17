@@ -5,11 +5,10 @@ spring:
   mustache:
     suffix: .html
     
-#custom configuration (코그니토 예시)
-
+#custom configuration (액세스 키 ID, Secret 기본 값은 본인 로컬에 있는 Credential참조 ) , 정책 arn은 aws 참조
 application:
   aws:
-    your_domain: qwerty.auth.ap-northeast-2.amazoncognito.com 
-    client_id: 7og2tl71nqkq4j279qrmkj8pg4
-    redirect_uri: http://localhost:8080/cognito/
-    
+    username : Users
+    accessKeyId: AKIAZZL2R2GQNGLEYS5Z
+    accessKeySecret: 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
+    policy_arn: arn:aws:iam::aws:policy/AmazonEC2FullAccess
