@@ -5,10 +5,15 @@ spring:
   mustache:
     suffix: .html
     
-#custom configuration (액세스 키 ID, Secret 기본 값은 본인 로컬에 있는 Credential참조 ) , 정책 arn은 aws 참조
+#custom configuration
+# accessKeyId, accessKeySecret의 기본 값은 로컬에 있는 자격 증명 파일 참고.
+# policy_arn은 새로운 IAM 유저에게 부여 할 정책 
+# ami_id은 생성 할 인스턴스의 기본값
+# 
 application:
   aws:
     username : Users
     accessKeyId: AKIAZZL2R2GQNGLEYS5Z
     accessKeySecret: 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
     policy_arn: arn:aws:iam::aws:policy/AmazonEC2FullAccess
+    ami_id: ami-0bea7fd38fabe821a

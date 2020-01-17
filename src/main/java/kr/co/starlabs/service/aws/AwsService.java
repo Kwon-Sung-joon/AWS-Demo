@@ -1,24 +1,11 @@
 package kr.co.starlabs.service.aws;
 
-import java.io.IOException;
-import java.security.GeneralSecurityException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestTemplate;
-import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.ec2.AmazonEC2;
@@ -31,6 +18,8 @@ import com.amazonaws.services.identitymanagement.AmazonIdentityManagementClientB
 
 import com.amazonaws.services.identitymanagement.model.CreateUserRequest;
 import com.amazonaws.services.identitymanagement.model.CreateUserResult;
+import com.amazonaws.services.identitymanagement.model.DeleteAccessKeyRequest;
+import com.amazonaws.services.identitymanagement.model.DeleteAccessKeyResult;
 import com.amazonaws.services.identitymanagement.model.DeleteConflictException;
 import com.amazonaws.services.identitymanagement.model.DeleteUserRequest;
 import com.amazonaws.services.identitymanagement.model.DetachUserPolicyRequest;
@@ -55,8 +44,8 @@ import com.amazonaws.services.ec2.model.RunInstancesResult;
 import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
 import com.amazonaws.services.ec2.model.DescribeInstancesResult;
 import com.amazonaws.services.ec2.model.Tag;
+import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
 import com.amazonaws.services.ec2.model.CreateTagsRequest;
-import com.amazonaws.services.ec2.model.CreateTagsResult;
 import kr.co.starlabs.config.ApplicationProperties;
 
 @Service
@@ -86,6 +75,7 @@ public class AwsService {
 //	}
 
 	/**
+	 * 새로운 IAM 유저 생성
 	 * 
 	 * @param username
 	 * @return
@@ -93,22 +83,19 @@ public class AwsService {
 
 	public Map<String, Object> createUser(String username) {
 
-		// 유저를 생성하고 액세스 키 생성,
-		// 유저의 ARN을 사용하여 정책을 준다.
 		Map<String, Object> resultMap = new HashMap<>();
 
 		final AmazonIdentityManagement iam = AmazonIdentityManagementClientBuilder.defaultClient();
 
-		// 유저 생성
+		// IAM 유저 생성
 		CreateUserRequest requestCreateUser = new CreateUserRequest().withUserName(username);
 		CreateUserResult responseCreateUser = iam.createUser(requestCreateUser);
 
-		// 생성한 유저에 액세스 키 생성
+		// 생성한 IAM 유저에 액세스 키 생성
 		CreateAccessKeyRequest requestAccessKey = new CreateAccessKeyRequest().withUserName(username);
 		CreateAccessKeyResult responseAccessKey = iam.createAccessKey(requestAccessKey);
 
-		// EC2 정책에 생성된 유저 추가
-
+		// 생성한 IAM 유저에 정책 부여
 		String policy_arn = applicationProperties.getAws().getPolicy_arn();
 
 		ListAttachedUserPoliciesRequest requestAttachedUserPolicies = new ListAttachedUserPoliciesRequest()
@@ -142,9 +129,6 @@ public class AwsService {
 
 		System.out.println("Successfully attached policy " + policy_arn + " to user " + username);
 
-		// 생성한 유저로 자격증명 생성
-//		BasicAWSCredentials awsCreds = new BasicAWSCredentials(responseAccessKey.getAccessKey().getAccessKeyId(),
-//				responseAccessKey.getAccessKey().getSecretAccessKey());
 		resultMap.put("username", responseCreateUser.getUser().getUserName());
 
 		// 생성한 유저의 액세스 키 ID,시크릿 키를 기본 값으로 지정
@@ -157,19 +141,99 @@ public class AwsService {
 
 	/**
 	 * 
-	 * @param name   = 태그명
-	 * @param ami_id
+	 * 생성한 IAM 유저 삭제
+	 */
+	public Map<String, Object> logout() {
+		String username = applicationProperties.getAws().getUsername();
+		String policy_arn = applicationProperties.getAws().getPolicy_arn();
+		String access_key = applicationProperties.getAws().getAccessKeyId();
+
+		/*
+		 * 유저 삭제 순서 정책 제거 -> 액세스 키 제거 -> 유저 삭제
+		 */
+		final AmazonIdentityManagement iam = AmazonIdentityManagementClientBuilder.defaultClient();
+
+		DetachUserPolicyRequest requestDetachUserPolicy = new DetachUserPolicyRequest().withUserName(username)
+				.withPolicyArn(policy_arn);
+
+		DetachUserPolicyResult responseDetachUserPolicy = iam.detachUserPolicy(requestDetachUserPolicy);
+
+		System.out.println("Successfully detached policy " + policy_arn + " from role " + username);
+
+		DeleteAccessKeyRequest request = new DeleteAccessKeyRequest().withAccessKeyId(access_key)
+				.withUserName(username);
+
+		DeleteAccessKeyResult response = iam.deleteAccessKey(request);
+
+		System.out.println("Successfully deleted access key " + access_key + " from user " + username);
+		DeleteUserRequest requestDeleteUser = new DeleteUserRequest().withUserName(username);
+
+		try {
+			iam.deleteUser(requestDeleteUser);
+		} catch (DeleteConflictException e) {
+			System.out.println("Unable to delete user. Verify user is not" + " associated with any resources");
+			throw e;
+		}
+
+		return null;
+	}
+
+	/**
+	 * 현재 계정에 있는 EC2 인스턴스 목록 출력
+	 * 
 	 * @return
 	 */
-	public Map<String, Object> createEC2(String name, String ami_id) {
+	public ArrayList<Object> listEC2() {
+		ArrayList<Object> resultList = new ArrayList<>();
+		int i = 0;
+
 		String accessKeyId = applicationProperties.getAws().getAccessKeyId();
 		String accessKeySecret = applicationProperties.getAws().getAccessKeySecret();
+
+		BasicAWSCredentials awsCreds = new BasicAWSCredentials(accessKeyId, accessKeySecret);
+
+		final AmazonEC2 ec2 = AmazonEC2ClientBuilder.standard().withRegion("ap-northeast-2")
+				.withCredentials(new AWSStaticCredentialsProvider(awsCreds)).build();
+		boolean done = false;
+
+		DescribeInstancesRequest request = new DescribeInstancesRequest();
+		while (!done) {
+			DescribeInstancesResult response = ec2.describeInstances(request);
+
+			for (Reservation reservation : response.getReservations()) {
+				for (Instance instance : reservation.getInstances()) {
+					resultList.add(i, instance.getInstanceId());
+					i++;
+				}
+			}
+
+			request.setNextToken(response.getNextToken());
+
+			if (response.getNextToken() == null) {
+				done = true;
+			}
+		}
+
+		return resultList;
+
+	}
+
+	/**
+	 * 
+	 * 새로운 인스턴스 생성
+	 * 
+	 * @return
+	 */
+	public Map<String, Object> createEC2(String name) {
+
+		String accessKeyId = applicationProperties.getAws().getAccessKeyId();
+		String accessKeySecret = applicationProperties.getAws().getAccessKeySecret();
+		String ami_id = applicationProperties.getAws().getAmi_id();
 
 		BasicAWSCredentials awsCreds = new BasicAWSCredentials(accessKeyId, accessKeySecret);
 		final AmazonEC2 ec2 = AmazonEC2ClientBuilder.standard().withRegion("ap-northeast-2")
 				.withCredentials(new AWSStaticCredentialsProvider(awsCreds)).build();
 
-		// final AmazonEC2 ec2 = AmazonEC2ClientBuilder.defaultClient();
 		RunInstancesRequest run_request = new RunInstancesRequest().withImageId(ami_id)
 				.withInstanceType(InstanceType.T2Micro).withMaxCount(1).withMinCount(1);
 
@@ -181,106 +245,22 @@ public class AwsService {
 
 		CreateTagsRequest tag_request = new CreateTagsRequest().withTags(tag);
 
-		CreateTagsResult tag_response = ec2.createTags(tag_request);
-
+		// CreateTagsResult tag_response = ec2.createTags(tag_request);
 		Map<String, Object> resultMap = new HashMap<>();
-		resultMap.put("reservation_id", reservation_id);
-		resultMap.put("ami_id", ami_id);
-		System.out.printf("Successfully started EC2 instance %s based on AMI %s", reservation_id, ami_id);
+		resultMap.put("instance_id", reservation_id);
 
 		return resultMap;
 	}
 
 	/**
 	 * 
-	 * @param instance_id
-	 * @return
-	 */
-	public Map<String, Object> stopEC2(String instance_id) {
-		String accessKeyId = applicationProperties.getAws().getAccessKeyId();
-		String accessKeySecret = applicationProperties.getAws().getAccessKeySecret();
-
-		BasicAWSCredentials awsCreds = new BasicAWSCredentials(accessKeyId, accessKeySecret);
-
-		final AmazonEC2 ec2 = AmazonEC2ClientBuilder.standard().withRegion("ap-northeast-2")
-				.withCredentials(new AWSStaticCredentialsProvider(awsCreds)).build();
-		DryRunSupportedRequest<StopInstancesRequest> dry_request = () -> {
-			StopInstancesRequest request = new StopInstancesRequest().withInstanceIds(instance_id);
-
-			return request.getDryRunRequest();
-		};
-
-		DryRunResult dry_response = ec2.dryRun(dry_request);
-
-		if (!dry_response.isSuccessful()) {
-			System.out.printf("Failed dry run to stop instance %s", instance_id);
-			throw dry_response.getDryRunResponse();
-		}
-
-		StopInstancesRequest request = new StopInstancesRequest().withInstanceIds(instance_id);
-
-		ec2.stopInstances(request);
-		System.out.printf("Successfully stop instance %s", instance_id);
-
-		Map<String, Object> resultMap = new HashMap<>();
-		resultMap.put("instance_id", instance_id);
-
-		return resultMap;
-	}
-
-	public Map<String, Object> descEC2(String instance_id) {
-
-		Map<String, Object> resultMap = new HashMap<>();
-
-		String accessKeyId = applicationProperties.getAws().getAccessKeyId();
-		String accessKeySecret = applicationProperties.getAws().getAccessKeySecret();
-
-		BasicAWSCredentials awsCreds = new BasicAWSCredentials(accessKeyId, accessKeySecret);
-		AmazonEC2 ec2 = AmazonEC2ClientBuilder.standard().withRegion("ap-northeast-2")
-				.withCredentials(new AWSStaticCredentialsProvider(awsCreds)).build();
-
-		boolean done = false;
-		DescribeInstancesRequest request = new DescribeInstancesRequest();
-		while (!done) {
-
-			DescribeInstancesResult response = ec2.describeInstances(request);
-
-			for (Reservation reservation : response.getReservations()) {
-				for (Instance instance : reservation.getInstances()) {
-					if (instance_id == instance.getInstanceId()) {
-						resultMap.put("instance_id", instance.getInstanceId());
-						resultMap.put("ami", instance.getImageId());
-						resultMap.put("state", instance.getState().getName());
-						resultMap.put("monitoring_state", instance.getMonitoring().getState());
-						resultMap.put("launchTime", instance.getLaunchTime());
-						System.out.println("같은 인스턴스 있음");
-					}
-
-				}
-			}
-
-			request.setNextToken(response.getNextToken());
-
-			if (response.getNextToken() == null) {
-				done = true;
-			}
-		}
-
-		return resultMap;
-
-	}
-
-	/**
+	 * 인스턴스 시작
 	 * 
-	 * @param instance_id
 	 * @return
 	 */
 	public Map<String, Object> startEC2(String instance_id) {
-//자격 증명 사용하기 ( 만들었던 자격증명을 이용하여 ec2를 생성하고 제어하는거 마무리 
 		Map<String, Object> resultMap = new HashMap<>();
 
-		System.out.println("액세스키 START EC2 " + applicationProperties.getAws().getAccessKeyId());
-		System.out.println("액세스 비밀키 START EC2" + applicationProperties.getAws().getAccessKeySecret());
 		String accessKeyId = applicationProperties.getAws().getAccessKeyId();
 		String accessKeySecret = applicationProperties.getAws().getAccessKeySecret();
 
@@ -314,34 +294,51 @@ public class AwsService {
 		return resultMap;
 	}
 
-	public Map<String, Object> logout() {
-		String username = applicationProperties.getAws().getUsername();
-		String policy_arn = applicationProperties.getAws().getPolicy_arn();
+	/**
+	 * 
+	 * 인스턴스 중지
+	 */
+	public Map<String, Object> stopEC2(String instance_id) {
+		
+		String accessKeyId = applicationProperties.getAws().getAccessKeyId();
+		String accessKeySecret = applicationProperties.getAws().getAccessKeySecret();
 
-		final AmazonIdentityManagement iam = AmazonIdentityManagementClientBuilder.defaultClient();
+		BasicAWSCredentials awsCreds = new BasicAWSCredentials(accessKeyId, accessKeySecret);
 
-		DetachUserPolicyRequest requestDetachUserPolicy = new DetachUserPolicyRequest().withUserName(username)
-				.withPolicyArn(policy_arn);
+		final AmazonEC2 ec2 = AmazonEC2ClientBuilder.standard().withRegion("ap-northeast-2")
+				.withCredentials(new AWSStaticCredentialsProvider(awsCreds)).build();
+		DryRunSupportedRequest<StopInstancesRequest> dry_request = () -> {
+			StopInstancesRequest request = new StopInstancesRequest().withInstanceIds(instance_id);
 
-		DetachUserPolicyResult responseDetachUserPolicy = iam.detachUserPolicy(requestDetachUserPolicy);
+			return request.getDryRunRequest();
+		};
 
-		System.out.println("Successfully detached policy " + policy_arn + " from role " + username);
+		DryRunResult dry_response = ec2.dryRun(dry_request);
 
-		DeleteUserRequest requestDeleteUser = new DeleteUserRequest().withUserName(username);
-
-		try {
-			iam.deleteUser(requestDeleteUser);
-		} catch (DeleteConflictException e) {
-			System.out.println("Unable to delete user. Verify user is not" + " associated with any resources");
-			throw e;
+		if (!dry_response.isSuccessful()) {
+			System.out.printf("Failed dry run to stop instance %s", instance_id);
+			throw dry_response.getDryRunResponse();
 		}
 
-		return null;
+		StopInstancesRequest request = new StopInstancesRequest().withInstanceIds(instance_id);
+
+		ec2.stopInstances(request);
+		System.out.printf("Successfully stop instance %s", instance_id);
+
+		Map<String, Object> resultMap = new HashMap<>();
+		resultMap.put("instance_id", instance_id);
+
+		return resultMap;
 	}
 
-	public ArrayList<Object> listEC2() {
-		ArrayList<Object> resultList = new ArrayList<>();
-		int i = 0;
+	/**
+	 * 
+	 * 인스턴스 종료
+	 * 
+	 * @return
+	 */
+	public Map<String, Object> terminateEC2(String instance_id) {
+		Map<String, Object> resultMap = new HashMap<>();
 
 		String accessKeyId = applicationProperties.getAws().getAccessKeyId();
 		String accessKeySecret = applicationProperties.getAws().getAccessKeySecret();
@@ -350,16 +347,65 @@ public class AwsService {
 
 		final AmazonEC2 ec2 = AmazonEC2ClientBuilder.standard().withRegion("ap-northeast-2")
 				.withCredentials(new AWSStaticCredentialsProvider(awsCreds)).build();
-		boolean done = false;
 
+		DryRunSupportedRequest<TerminateInstancesRequest> dry_request = () -> {
+			TerminateInstancesRequest request = new TerminateInstancesRequest().withInstanceIds(instance_id);
+
+			return request.getDryRunRequest();
+		};
+
+		DryRunResult dry_response = ec2.dryRun(dry_request);
+
+		if (!dry_response.isSuccessful()) {
+			System.out.printf("Failed dry run to start instance %s", instance_id);
+
+			throw dry_response.getDryRunResponse();
+		}
+
+		TerminateInstancesRequest request = new TerminateInstancesRequest().withInstanceIds(instance_id);
+
+		ec2.terminateInstances(request);
+
+		System.out.printf("Successfully terminated instance %s", instance_id);
+
+		resultMap.put("instance_id", instance_id);
+
+		return resultMap;
+	}
+
+	/**
+	 * 
+	 * 인스턴스의 정보 출력
+	 * 
+	 * @return
+	 */
+	public Map<String, Object> descEC2(String instance_id) {
+
+		Map<String, Object> resultMap = new HashMap<>();
+
+		String accessKeyId = applicationProperties.getAws().getAccessKeyId();
+		String accessKeySecret = applicationProperties.getAws().getAccessKeySecret();
+
+		BasicAWSCredentials awsCreds = new BasicAWSCredentials(accessKeyId, accessKeySecret);
+		AmazonEC2 ec2 = AmazonEC2ClientBuilder.standard().withRegion("ap-northeast-2")
+				.withCredentials(new AWSStaticCredentialsProvider(awsCreds)).build();
+
+		boolean done = false;
 		DescribeInstancesRequest request = new DescribeInstancesRequest();
 		while (!done) {
+
 			DescribeInstancesResult response = ec2.describeInstances(request);
 
 			for (Reservation reservation : response.getReservations()) {
 				for (Instance instance : reservation.getInstances()) {
-					resultList.add(i, instance.getInstanceId());
-					i++;
+
+					if (instance_id.equals(instance.getInstanceId())) {
+						resultMap.put("instance_id", instance.getInstanceId());
+						resultMap.put("ami", instance.getImageId());
+						resultMap.put("state", instance.getState().getName());
+						resultMap.put("monitoring_state", instance.getMonitoring().getState());
+						resultMap.put("launchTime", instance.getLaunchTime());
+					}
 				}
 			}
 
@@ -370,10 +416,7 @@ public class AwsService {
 			}
 		}
 
-		for (Object j : resultList) {
-			System.out.println("값 : " + j);
-		}
-		return resultList;
+		return resultMap;
 
 	}
 

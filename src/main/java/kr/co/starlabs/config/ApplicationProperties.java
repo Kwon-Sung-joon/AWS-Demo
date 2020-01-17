@@ -19,9 +19,15 @@ public class ApplicationProperties {
 		private String accessKeyId;
 		private String accessKeySecret;
 		private String policy_arn;
+		private String ami_id;
 		
 		
-		
+		public String getAmi_id() {
+			return ami_id;
+		}
+		public void setAmi_id(String ami_id) {
+			this.ami_id = ami_id;
+		}
 		public String getPolicy_arn() {
 			return policy_arn;
 		}

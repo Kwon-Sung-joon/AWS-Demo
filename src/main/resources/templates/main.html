@@ -2,23 +2,33 @@
 <html>
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>main</title>
+    <title>AWS EC2</title>
 </head>
 
 <body>
------------------------------------------------------------ <br>
-User Name : {{#username}} {{.}} {{/username}} <br>
-Instance ID : {{#instance_id}} {{.}} {{/instance_id}} <br>
------------------------------------------------------------ <br>
-Status       : {{#status}} {{.}} {{/status}} <br>
-Start Time   : {{#startTime}} {{.}} {{/startTime}} <br>
-End Time     : {{#endTime}} {{.}} {{/endTime}} <br>
+
 ----------------------------------------------------------- <br>
 
-<a href="http://localhost:8080/startEc2">EC2 Start</a><br>
-<a href="http://localhost:8080/describeEc2">Describe EC2 instances</a><br>
-<a href="http://localhost:8080/createEc2"></a>EC2 Create<br>
-<a href="http://localhost:8080/stopEc2">EC2 Stop</a><br>
+----------------------------------------------------------- <br>
+Instance ID : {{#instance_id}} {{.}} {{/instance_id}}<br>
+AMI : {{#ami}} {{.}} {{/ami}} <br>
+Type : {{#type}} {{.}} {{/type}} <br>
+----------------------------------------------------------- <br>
+State       : {{#state}} {{.}} {{/state}} <br>
+Monitoring State   : {{#monitoring_state}} {{.}} {{/monitoring_state}} <br>
+Launch Time : {{#launchTime}} {{.}} {{/launchTime}} <br>
+
+----------------------------------------------------------- <br>
+
+<a href="http://localhost:8080/descEc2?instance_id={{instance_id}}">인스턴스 정보출력</a><br>
+<a href="http://localhost:8080/startEc2?instance_id={{instance_id}}">인스턴스 시작</a><br>
+<a href="http://localhost:8080/stopEc2?instance_id={{instance_id}}">인스턴스 정지</a><br>
+<a href="http://localhost:8080/terminateEc2?instance_id={{instance_id}}">인스턴스 종료</a><br>
+
+----------------------------------------------------------- <br>
+<a href="http://localhost:8080/listEc2">뒤로</a><br>
+----------------------------------------------------------- <br>
+<a href="http://localhost:8080/logout">로그아웃</a><br>
 
 
 </body>

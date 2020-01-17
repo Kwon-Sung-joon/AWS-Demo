@@ -47,21 +47,63 @@ public class AwsController {
 
 		awsService.logout();
 
-		return "describe";
+		return "login";
 	}
 
 	@RequestMapping("/listEc2")
 	public String listEc2(Model model) {
 		ArrayList<Object> resultList = awsService.listEC2();
-		
-		model.addAttribute("instances",resultList);
-	
+
+		model.addAttribute("instances", resultList);
+
 		return "list";
+	}
+
+	@RequestMapping("/createEc2")
+	public String createEc2(Model model) {
+		// name은 태그에 사용할 이름
+
+		String name = UUID.randomUUID().toString();
+
+		Map<String, Object> resultMap = awsService.createEC2(name);
+		model.addAttribute("instance_id", resultMap.get("instance_id"));
+
+		return "main";
+	}
+
+	@RequestMapping("/startEc2")
+	public String startEc2(Model model, @RequestParam("instance_id") String instance_id) {
+
+		// String instance_id = "i-05030a3f53293474f";
+		Map<String, Object> resultMap = awsService.startEC2(instance_id);
+
+		model.addAttribute("instance_id", resultMap.get("instance_id"));
+
+		return "main";
+	}
+
+	@RequestMapping("/stopEc2")
+	public String stopEc2(Model model, @RequestParam("instance_id") String instance_id) {
+
+		// String instance_id = "i-05030a3f53293474f";
+		Map<String, Object> resultMap = awsService.stopEC2(instance_id);
+		model.addAttribute("instance_id", resultMap.get("instance_id"));
+
+		return "main";
+	}
+
+	@RequestMapping("/terminateEc2")
+	public String terminateEc2(Model model, @RequestParam("instance_id") String instance_id) {
+		// String instance_id = "i-05030a3f53293474f";
+		Map<String, Object> resultMap = awsService.terminateEC2(instance_id);
+		model.addAttribute("instance_id", resultMap.get("instance_id"));
+
+		return "main";
 	}
 
 	@RequestMapping("/descEc2")
 	public String descEc2(Model model, @RequestParam("instance_id") String instance_id) {
-		
+
 		Map<String, Object> resultMap = awsService.descEC2(instance_id);
 
 		model.addAttribute("instance_id", resultMap.get("instance_id"));
@@ -71,54 +113,7 @@ public class AwsController {
 		model.addAttribute("monitoring_state", resultMap.get("monitoring_state"));
 		model.addAttribute("launchTime", resultMap.get("launchTime"));
 
-		return "describe";
-	}
-
-	@RequestMapping("/startEc2")
-	public String startEc2(Model model) {
-
-		String instance_id = "i-05030a3f53293474f";
-		Map<String, Object> resultMap = awsService.startEC2(instance_id);
-
-		model.addAttribute("instance_id", resultMap.get("instance_id"));
-//		model.addAttribute("ami", resultMap.get("ami"));
-//		model.addAttribute("type", resultMap.get("type"));
-//		model.addAttribute("state", resultMap.get("state"));
-//		model.addAttribute("monitoring_state", resultMap.get("monitoring_state"));
-//		model.addAttribute("launchTime", resultMap.get("launchTime"));
-
-		return "describe";
-	}
-
-	/**
-	 * 
-	 * @param model
-	 * @param accessKeyId
-	 * @param accessKeySecret
-	 * @return
-	 */
-	@RequestMapping("/createEc2")
-	public String createEc2(Model model) {
-		// name은 태그에 사용할 이름
-
-		String name = UUID.randomUUID().toString();
-		String ami_id = "ami-0bea7fd38fabe821a";
-
-		Map<String, Object> resultMap = awsService.createEC2(name, ami_id);
-		model.addAttribute("reservation_id", resultMap.get("reservation_id"));
-		model.addAttribute("ami_id", resultMap.get("ami_id"));
-
-		return "describe";
-	}
-
-	@RequestMapping("/stopEc2")
-	public String stopEc2(Model model) {
-
-		String instance_id = "i-05030a3f53293474f";
-		Map<String, Object> resultMap = awsService.stopEC2(instance_id);
-		model.addAttribute("instance_id", resultMap.get("instance_id"));
-
-		return "describe";
+		return "main";
 	}
 
 }

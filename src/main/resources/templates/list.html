@@ -2,17 +2,23 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<title>Google Cloud 로그인</title>
+<title>AWS EC2</title>
 </head>
 
 <body>
-
+----------------------------------------------------------- <br>
 	인스턴스 ID :
 	{{#instances}}
 	<li>
 	<a href="http://localhost:8080/descEc2?instance_id={{.}}">{{.}}</a>
 	</li>
 	{{/instances}}
+----------------------------------------------------------- <br>
+
+<a href="http://localhost:8080/createEc2">인스턴스 생성</a><br>
+
+----------------------------------------------------------- <br>
+<a href="http://localhost:8080/logout">로그아웃</a><br>
 
 
 </body>
