@@ -3,31 +3,18 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <title>AWS EC2</title>
-<script>
-function check(box){
-	if(box.checked == true)
-		
-}
-</script>
-
 </head>
 
 <body>
+
 ----------------------------------------------------------- <br>
-<form action="/listEc2" method="post">
-	<input type=checkbox value="all" checked="checked" onClick="check(this)">Default<br>
-	<input type=checkbox value="running" checked="checked" onClick="check(this)">Running<br>
-	<input type=checkbox value="stopped" checked="checked" onClick="check(this)">stopped<br>
-	<input type=checkbox value="terminated" checked="checked" onClick="check(this)">terminated<br>
-	
-</form>
------------------------------------------------------------ <br>
-	인스턴스 ID :
-	{{#instances}} 
-	<li>
-	<a href="http://localhost:8080/descEc2?instance_id={{.}}">{{.}}</a>
-	</li>
-	{{/instances}} 
+   목록<br>
+   {{#instances}}
+    <li>
+   <a href="http://localhost:8080/descEc2?instance_id={{instance_id}}">{{instance_id}}</a>
+    {{state}} 
+    </li> 
+   {{/instances}} <br>
 ----------------------------------------------------------- <br>
 
 <a href="http://localhost:8080/createEc2">인스턴스 생성</a><br>

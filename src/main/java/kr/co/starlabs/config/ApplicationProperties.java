@@ -21,7 +21,7 @@ public class ApplicationProperties {
 		private String policy_arn;
 		private String ami_id;
 		private String region;
-		
+
 		public String getRegion() {
 			return region;
 		}

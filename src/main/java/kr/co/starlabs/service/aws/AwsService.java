@@ -208,13 +208,22 @@ public class AwsService {
 
 		boolean done = false;
 
+        
 		DescribeInstancesRequest request = new DescribeInstancesRequest();
+        
+
 		while (!done) {
 			DescribeInstancesResult response = ec2.describeInstances(request);
 
 			for (Reservation reservation : response.getReservations()) {
 				for (Instance instance : reservation.getInstances()) {
-					resultList.add(i, instance.getInstanceId());
+
+					   Map<String, Object> resultMap = new HashMap<>();
+		               resultMap.put("instance_id", instance.getInstanceId());
+		               resultMap.put("state", instance.getState().getName());
+		               
+		               resultList.add(i, resultMap);
+
 					i++;
 				}
 			}

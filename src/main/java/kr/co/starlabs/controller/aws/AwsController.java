@@ -1,10 +1,8 @@
 package kr.co.starlabs.controller.aws;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,10 +51,10 @@ public class AwsController {
 	}
 
 	@RequestMapping("/listEc2")
-	public String listEc2(Model model , @RequestParam String filter) {
+	public String listEc2(Model model) {
 		ArrayList<Object> resultList = awsService.listEC2();
-		System.out.println("필터" + filter);
-		model.addAttribute("instances",resultList);
+		
+	      model.addAttribute("instances", resultList);
 		
 		return "list";
 	}
