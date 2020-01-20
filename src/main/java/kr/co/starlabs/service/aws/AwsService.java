@@ -10,12 +10,10 @@ import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
-
 import com.amazonaws.services.ec2.model.DryRunResult;
 import com.amazonaws.services.ec2.model.DryRunSupportedRequest;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagementClientBuilder;
-
 import com.amazonaws.services.identitymanagement.model.CreateUserRequest;
 import com.amazonaws.services.identitymanagement.model.CreateUserResult;
 import com.amazonaws.services.identitymanagement.model.DeleteAccessKeyRequest;
@@ -26,7 +24,6 @@ import com.amazonaws.services.identitymanagement.model.DetachUserPolicyRequest;
 import com.amazonaws.services.identitymanagement.model.DetachUserPolicyResult;
 import com.amazonaws.services.identitymanagement.model.CreateAccessKeyRequest;
 import com.amazonaws.services.identitymanagement.model.CreateAccessKeyResult;
-
 import com.amazonaws.services.identitymanagement.model.AttachUserPolicyRequest;
 import com.amazonaws.services.identitymanagement.model.AttachedPolicy;
 import com.amazonaws.services.identitymanagement.model.ListAttachedUserPoliciesRequest;
@@ -46,6 +43,7 @@ import com.amazonaws.services.ec2.model.DescribeInstancesResult;
 import com.amazonaws.services.ec2.model.Tag;
 import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
 import com.amazonaws.services.ec2.model.CreateTagsRequest;
+
 import kr.co.starlabs.config.ApplicationProperties;
 
 @Service
@@ -179,21 +177,34 @@ public class AwsService {
 	}
 
 	/**
+	 * ec2 클라이언트 생성자
+	 * 
+	 * @return
+	 */
+	public AmazonEC2 ec2Client() {
+
+		String accessKeyId = applicationProperties.getAws().getAccessKeyId();
+		String accessKeySecret = applicationProperties.getAws().getAccessKeySecret();
+		String region = applicationProperties.getAws().getRegion();
+
+		BasicAWSCredentials awsCreds = new BasicAWSCredentials(accessKeyId, accessKeySecret);
+		AmazonEC2 ec2 = AmazonEC2ClientBuilder.standard().withRegion(region)
+				.withCredentials(new AWSStaticCredentialsProvider(awsCreds)).build();
+		return ec2;
+	}
+	
+	/**
 	 * 현재 계정에 있는 EC2 인스턴스 목록 출력
 	 * 
 	 * @return
 	 */
+
 	public ArrayList<Object> listEC2() {
 		ArrayList<Object> resultList = new ArrayList<>();
 		int i = 0;
 
-		String accessKeyId = applicationProperties.getAws().getAccessKeyId();
-		String accessKeySecret = applicationProperties.getAws().getAccessKeySecret();
+		AmazonEC2 ec2 = ec2Client();
 
-		BasicAWSCredentials awsCreds = new BasicAWSCredentials(accessKeyId, accessKeySecret);
-
-		final AmazonEC2 ec2 = AmazonEC2ClientBuilder.standard().withRegion("ap-northeast-2")
-				.withCredentials(new AWSStaticCredentialsProvider(awsCreds)).build();
 		boolean done = false;
 
 		DescribeInstancesRequest request = new DescribeInstancesRequest();
@@ -226,13 +237,9 @@ public class AwsService {
 	 */
 	public Map<String, Object> createEC2(String name) {
 
-		String accessKeyId = applicationProperties.getAws().getAccessKeyId();
-		String accessKeySecret = applicationProperties.getAws().getAccessKeySecret();
 		String ami_id = applicationProperties.getAws().getAmi_id();
 
-		BasicAWSCredentials awsCreds = new BasicAWSCredentials(accessKeyId, accessKeySecret);
-		final AmazonEC2 ec2 = AmazonEC2ClientBuilder.standard().withRegion("ap-northeast-2")
-				.withCredentials(new AWSStaticCredentialsProvider(awsCreds)).build();
+		AmazonEC2 ec2 = ec2Client();
 
 		RunInstancesRequest run_request = new RunInstancesRequest().withImageId(ami_id)
 				.withInstanceType(InstanceType.T2Micro).withMaxCount(1).withMinCount(1);
@@ -261,17 +268,10 @@ public class AwsService {
 	public Map<String, Object> startEC2(String instance_id) {
 		Map<String, Object> resultMap = new HashMap<>();
 
-		String accessKeyId = applicationProperties.getAws().getAccessKeyId();
-		String accessKeySecret = applicationProperties.getAws().getAccessKeySecret();
-
-		BasicAWSCredentials awsCreds = new BasicAWSCredentials(accessKeyId, accessKeySecret);
-
-		final AmazonEC2 ec2 = AmazonEC2ClientBuilder.standard().withRegion("ap-northeast-2")
-				.withCredentials(new AWSStaticCredentialsProvider(awsCreds)).build();
+		AmazonEC2 ec2 = ec2Client();
 
 		DryRunSupportedRequest<StartInstancesRequest> dry_request = () -> {
 			StartInstancesRequest request = new StartInstancesRequest().withInstanceIds(instance_id);
-
 			return request.getDryRunRequest();
 		};
 
@@ -284,7 +284,6 @@ public class AwsService {
 		}
 
 		StartInstancesRequest request = new StartInstancesRequest().withInstanceIds(instance_id);
-
 		ec2.startInstances(request);
 
 		System.out.printf("Successfully started instance %s", instance_id);
@@ -299,14 +298,8 @@ public class AwsService {
 	 * 인스턴스 중지
 	 */
 	public Map<String, Object> stopEC2(String instance_id) {
-		
-		String accessKeyId = applicationProperties.getAws().getAccessKeyId();
-		String accessKeySecret = applicationProperties.getAws().getAccessKeySecret();
 
-		BasicAWSCredentials awsCreds = new BasicAWSCredentials(accessKeyId, accessKeySecret);
-
-		final AmazonEC2 ec2 = AmazonEC2ClientBuilder.standard().withRegion("ap-northeast-2")
-				.withCredentials(new AWSStaticCredentialsProvider(awsCreds)).build();
+		AmazonEC2 ec2 = ec2Client();
 		DryRunSupportedRequest<StopInstancesRequest> dry_request = () -> {
 			StopInstancesRequest request = new StopInstancesRequest().withInstanceIds(instance_id);
 
@@ -340,13 +333,7 @@ public class AwsService {
 	public Map<String, Object> terminateEC2(String instance_id) {
 		Map<String, Object> resultMap = new HashMap<>();
 
-		String accessKeyId = applicationProperties.getAws().getAccessKeyId();
-		String accessKeySecret = applicationProperties.getAws().getAccessKeySecret();
-
-		BasicAWSCredentials awsCreds = new BasicAWSCredentials(accessKeyId, accessKeySecret);
-
-		final AmazonEC2 ec2 = AmazonEC2ClientBuilder.standard().withRegion("ap-northeast-2")
-				.withCredentials(new AWSStaticCredentialsProvider(awsCreds)).build();
+		AmazonEC2 ec2 = ec2Client();
 
 		DryRunSupportedRequest<TerminateInstancesRequest> dry_request = () -> {
 			TerminateInstancesRequest request = new TerminateInstancesRequest().withInstanceIds(instance_id);
@@ -383,12 +370,7 @@ public class AwsService {
 
 		Map<String, Object> resultMap = new HashMap<>();
 
-		String accessKeyId = applicationProperties.getAws().getAccessKeyId();
-		String accessKeySecret = applicationProperties.getAws().getAccessKeySecret();
-
-		BasicAWSCredentials awsCreds = new BasicAWSCredentials(accessKeyId, accessKeySecret);
-		AmazonEC2 ec2 = AmazonEC2ClientBuilder.standard().withRegion("ap-northeast-2")
-				.withCredentials(new AWSStaticCredentialsProvider(awsCreds)).build();
+		AmazonEC2 ec2 = ec2Client();
 
 		boolean done = false;
 		DescribeInstancesRequest request = new DescribeInstancesRequest();
@@ -398,7 +380,6 @@ public class AwsService {
 
 			for (Reservation reservation : response.getReservations()) {
 				for (Instance instance : reservation.getInstances()) {
-
 					if (instance_id.equals(instance.getInstanceId())) {
 						resultMap.put("instance_id", instance.getInstanceId());
 						resultMap.put("ami", instance.getImageId());

@@ -1,22 +1,17 @@
 package kr.co.starlabs.controller.aws;
 
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-
-import com.amazonaws.auth.BasicAWSCredentials;
 
 import kr.co.starlabs.service.aws.AwsService;
 
@@ -32,6 +27,16 @@ public class AwsController {
 	public String main() {
 		return "login";
 	}
+	
+	@RequestMapping("/loading")
+	public String loading() throws Exception {
+		System.out.println("timer end!");
+		//DelayMethod(10);
+		System.out.println("timer end!");
+		//return "redirect:/listEc2";
+		return "loading";
+	}
+
 
 	// user 생성
 	@RequestMapping("/createUser")
@@ -53,15 +58,14 @@ public class AwsController {
 	@RequestMapping("/listEc2")
 	public String listEc2(Model model) {
 		ArrayList<Object> resultList = awsService.listEC2();
-
-		model.addAttribute("instances", resultList);
-
+		
+		model.addAttribute("instances",resultList);
+		
 		return "list";
 	}
 
 	@RequestMapping("/createEc2")
 	public String createEc2(Model model) {
-		// name은 태그에 사용할 이름
 
 		String name = UUID.randomUUID().toString();
 
@@ -73,10 +77,7 @@ public class AwsController {
 
 	@RequestMapping("/startEc2")
 	public String startEc2(Model model, @RequestParam("instance_id") String instance_id) {
-
-		// String instance_id = "i-05030a3f53293474f";
 		Map<String, Object> resultMap = awsService.startEC2(instance_id);
-
 		model.addAttribute("instance_id", resultMap.get("instance_id"));
 
 		return "main";
@@ -84,8 +85,6 @@ public class AwsController {
 
 	@RequestMapping("/stopEc2")
 	public String stopEc2(Model model, @RequestParam("instance_id") String instance_id) {
-
-		// String instance_id = "i-05030a3f53293474f";
 		Map<String, Object> resultMap = awsService.stopEC2(instance_id);
 		model.addAttribute("instance_id", resultMap.get("instance_id"));
 
@@ -94,7 +93,6 @@ public class AwsController {
 
 	@RequestMapping("/terminateEc2")
 	public String terminateEc2(Model model, @RequestParam("instance_id") String instance_id) {
-		// String instance_id = "i-05030a3f53293474f";
 		Map<String, Object> resultMap = awsService.terminateEC2(instance_id);
 		model.addAttribute("instance_id", resultMap.get("instance_id"));
 

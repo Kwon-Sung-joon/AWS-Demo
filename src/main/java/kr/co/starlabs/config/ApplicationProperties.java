@@ -20,8 +20,14 @@ public class ApplicationProperties {
 		private String accessKeySecret;
 		private String policy_arn;
 		private String ami_id;
+		private String region;
 		
-		
+		public String getRegion() {
+			return region;
+		}
+		public void setRegion(String region) {
+			this.region = region;
+		}
 		public String getAmi_id() {
 			return ami_id;
 		}
