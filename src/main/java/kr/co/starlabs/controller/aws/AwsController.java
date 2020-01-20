@@ -53,13 +53,14 @@ public class AwsController {
 	}
 
 	@RequestMapping("/listEc2")
-	public String listEc2(Model model) {
+	public String listEc2(Model model , @RequestParam String filter) {
 		ArrayList<Object> resultList = awsService.listEC2();
-		
+		System.out.println("필터" + filter);
 		model.addAttribute("instances",resultList);
 		
 		return "list";
 	}
+	
 
 	@RequestMapping("/createEc2")
 	public String createEc2(Model model) {

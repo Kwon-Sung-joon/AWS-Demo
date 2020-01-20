@@ -218,7 +218,7 @@ public class AwsService {
 					i++;
 				}
 			}
-
+			
 			request.setNextToken(response.getNextToken());
 
 			if (response.getNextToken() == null) {

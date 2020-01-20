@@ -3,9 +3,24 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <title>AWS EC2</title>
+<script>
+function check(box){
+	if(box.checked == true)
+		
+}
+</script>
+
 </head>
 
 <body>
+----------------------------------------------------------- <br>
+<form action="/listEc2" method="post">
+	<input type=checkbox value="all" checked="checked" onClick="check(this)">Default<br>
+	<input type=checkbox value="running" checked="checked" onClick="check(this)">Running<br>
+	<input type=checkbox value="stopped" checked="checked" onClick="check(this)">stopped<br>
+	<input type=checkbox value="terminated" checked="checked" onClick="check(this)">terminated<br>
+	
+</form>
 ----------------------------------------------------------- <br>
 	인스턴스 ID :
 	{{#instances}} 
