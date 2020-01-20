@@ -30,10 +30,7 @@ public class AwsController {
 	
 	@RequestMapping("/loading")
 	public String loading() throws Exception {
-		System.out.println("timer end!");
-		//DelayMethod(10);
-		System.out.println("timer end!");
-		//return "redirect:/listEc2";
+
 		return "loading";
 	}
 

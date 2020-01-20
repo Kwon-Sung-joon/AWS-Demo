@@ -54,6 +54,7 @@ public class AwsService {
 	@Autowired
 	private ApplicationProperties applicationProperties;
 
+	
 // Cognito 예시
 //	public Map<String, Object> getAwsCodeUrl() {
 //
@@ -384,6 +385,7 @@ public class AwsService {
 						resultMap.put("instance_id", instance.getInstanceId());
 						resultMap.put("ami", instance.getImageId());
 						resultMap.put("state", instance.getState().getName());
+						resultMap.put("type",instance.getInstanceType());
 						resultMap.put("monitoring_state", instance.getMonitoring().getState());
 						resultMap.put("launchTime", instance.getLaunchTime());
 					}
