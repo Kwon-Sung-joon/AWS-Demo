@@ -25,13 +25,12 @@ public class AwsController {
 	public String main() {
 		return "login";
 	}
-	
+
 	@RequestMapping("/loading")
 	public String loading() throws Exception {
 
 		return "loading";
 	}
-
 
 	// user 생성
 	@RequestMapping("/createUser")
@@ -51,14 +50,13 @@ public class AwsController {
 	}
 
 	@RequestMapping("/listEc2")
-	public String listEc2(Model model) {
-		ArrayList<Object> resultList = awsService.listEC2();
-		
-	      model.addAttribute("instances", resultList);
-		
+	public String listEc2(Model model, @RequestParam(value = "filter", required = false) String filter) {
+		ArrayList<Object> resultList = awsService.listEC2(filter);
+
+		model.addAttribute("instances", resultList);
+
 		return "list";
 	}
-	
 
 	@RequestMapping("/createEc2")
 	public String createEc2(Model model) {

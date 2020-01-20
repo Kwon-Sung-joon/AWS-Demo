@@ -12,6 +12,7 @@ import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
 import com.amazonaws.services.ec2.model.DryRunResult;
 import com.amazonaws.services.ec2.model.DryRunSupportedRequest;
+import com.amazonaws.services.ec2.model.Filter;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagementClientBuilder;
 import com.amazonaws.services.identitymanagement.model.CreateUserRequest;
@@ -196,20 +197,27 @@ public class AwsService {
 	
 	/**
 	 * 현재 계정에 있는 EC2 인스턴스 목록 출력
+	 * @param filter 
 	 * 
 	 * @return
 	 */
 
-	public ArrayList<Object> listEC2() {
+	public ArrayList<Object> listEC2(String state) {
 		ArrayList<Object> resultList = new ArrayList<>();
 		int i = 0;
 
 		AmazonEC2 ec2 = ec2Client();
-
-		boolean done = false;
-
+		
+		Filter filter = new Filter("instance-state-name");
+        filter.withValues(state);
         
 		DescribeInstancesRequest request = new DescribeInstancesRequest();
+		boolean done = false;
+		if(state.equals("all")) {
+			System.out.println("전부 출력");
+			request.withFilters(filter);
+		}
+		
         
 
 		while (!done) {
