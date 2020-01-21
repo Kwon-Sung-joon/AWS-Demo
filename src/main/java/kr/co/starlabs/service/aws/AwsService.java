@@ -213,10 +213,10 @@ public class AwsService {
         
 		DescribeInstancesRequest request = new DescribeInstancesRequest();
 		boolean done = false;
-		if(state.equals("all")) {
-			System.out.println("전부 출력");
-			request.withFilters(filter);
-		}
+//		if(state) {
+//			System.out.println("전부 출력");
+//			request.withFilters(filter);
+//		}
 		
         
 
