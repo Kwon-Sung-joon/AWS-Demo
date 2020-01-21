@@ -9,9 +9,9 @@
 * IAM 유저의 사용이 끝난 후 해당 유저 삭제
 
 
-### 미완성 부분
-* IAM 유저 생성 후 10초 가량 대기 후 사용 가능
-* 반복 요청 시 Error 발생 
+### 수정
+* IAM 유저 생성 후 10초 가량 대기 후 사용 가능 -> 로딩 페이지로 대체
+ 
 
 ### 참고사이트
 * [Java용 AWS SDK 개발자 가이드](https://docs.aws.amazon.com/ko_kr/sdk-for-java/v1/developer-guide/aws-sdk-java-dg.pdf)

@@ -51,6 +51,7 @@ public class AwsController {
 
 	@RequestMapping("/listEc2")
 	public String listEc2(Model model, @RequestParam(value = "filter", required = false) String filter) {
+		
 		ArrayList<Object> resultList = awsService.listEC2(filter);
 
 		model.addAttribute("instances", resultList);

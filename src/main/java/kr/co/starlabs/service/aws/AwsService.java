@@ -126,7 +126,7 @@ public class AwsService {
 				.withPolicyArn(policy_arn);
 
 		iam.attachUserPolicy(attach_request);
-
+		
 		System.out.println("Successfully attached policy " + policy_arn + " to user " + username);
 
 		resultMap.put("username", responseCreateUser.getUser().getUserName());
@@ -143,7 +143,7 @@ public class AwsService {
 	 * 
 	 * 생성한 IAM 유저 삭제
 	 */
-	public Map<String, Object> logout() {
+	public void logout() {
 		String username = applicationProperties.getAws().getUsername();
 		String policy_arn = applicationProperties.getAws().getPolicy_arn();
 		String access_key = applicationProperties.getAws().getAccessKeyId();
@@ -175,7 +175,7 @@ public class AwsService {
 			throw e;
 		}
 
-		return null;
+		
 	}
 
 	/**
@@ -213,8 +213,8 @@ public class AwsService {
         
 		DescribeInstancesRequest request = new DescribeInstancesRequest();
 		boolean done = false;
-//		if(state) {
-//			System.out.println("전부 출력");
+		
+//		if(!(state.equalsIgnoreCase("all")) || state==null) {
 //			request.withFilters(filter);
 //		}
 		
