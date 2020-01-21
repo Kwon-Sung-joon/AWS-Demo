@@ -13,6 +13,14 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import kr.co.starlabs.service.aws.AwsService;
 
+
+/**
+ * 
+ * @author sjkwon
+ *
+ */
+
+
 @Controller
 public class AwsController {
 

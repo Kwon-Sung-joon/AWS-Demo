@@ -47,6 +47,11 @@ import com.amazonaws.services.ec2.model.CreateTagsRequest;
 
 import kr.co.starlabs.config.ApplicationProperties;
 
+/**
+ * 
+ * @author sjkwon
+ *
+ */
 @Service
 public class AwsService {
 
@@ -175,7 +180,6 @@ public class AwsService {
 			throw e;
 		}
 
-		
 	}
 
 	/**
@@ -392,20 +396,21 @@ public class AwsService {
 
 		boolean done = false;
 		DescribeInstancesRequest request = new DescribeInstancesRequest();
+		request.withInstanceIds(instance_id);
 		while (!done) {
 
 			DescribeInstancesResult response = ec2.describeInstances(request);
 
 			for (Reservation reservation : response.getReservations()) {
 				for (Instance instance : reservation.getInstances()) {
-					if (instance_id.equals(instance.getInstanceId())) {
+					
 						resultMap.put("instance_id", instance.getInstanceId());
 						resultMap.put("ami", instance.getImageId());
 						resultMap.put("state", instance.getState().getName());
 						resultMap.put("type",instance.getInstanceType());
 						resultMap.put("monitoring_state", instance.getMonitoring().getState());
 						resultMap.put("launchTime", instance.getLaunchTime());
-					}
+				
 				}
 			}
 
