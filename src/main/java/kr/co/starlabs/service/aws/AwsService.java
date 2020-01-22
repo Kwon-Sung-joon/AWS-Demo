@@ -12,7 +12,6 @@ import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
 import com.amazonaws.services.ec2.model.DryRunResult;
 import com.amazonaws.services.ec2.model.DryRunSupportedRequest;
-import com.amazonaws.services.ec2.model.Filter;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagementClientBuilder;
 import com.amazonaws.services.identitymanagement.model.CreateUserRequest;
@@ -59,25 +58,6 @@ public class AwsService {
 	@Autowired
 	private ApplicationProperties applicationProperties;
 
-	
-// Cognito 예시
-//	public Map<String, Object> getAwsCodeUrl() {
-//
-//		Map<String, Object> resultMap = new HashMap<>();
-//
-//		String yourDomain = applicationProperties.getAws().getYourDomain();
-//		String redirectUri = applicationProperties.getAws().getRedirectUri();
-//		String clientId = applicationProperties.getAws().getClientId();
-//
-//		resultMap.put("yourDomain", yourDomain);
-//		resultMap.put("redirectUri", redirectUri);
-//		resultMap.put("clientId", clientId);
-//
-//		logger.debug("login parameters [{}, {}, {}, {}]", yourDomain, redirectUri, clientId);
-//
-//		return resultMap;
-//	}
-
 	/**
 	 * 새로운 IAM 유저 생성
 	 * 
@@ -87,11 +67,10 @@ public class AwsService {
 
 	public Map<String, Object> createUser(String username) {
 
-		
 		Map<String, Object> resultMap = new HashMap<>();
 
 		final AmazonIdentityManagement iam = AmazonIdentityManagementClientBuilder.defaultClient();
-		
+
 		// IAM 유저 생성
 		CreateUserRequest requestCreateUser = new CreateUserRequest().withUserName(username);
 		CreateUserResult responseCreateUser = iam.createUser(requestCreateUser);
@@ -131,7 +110,7 @@ public class AwsService {
 				.withPolicyArn(policy_arn);
 
 		iam.attachUserPolicy(attach_request);
-		
+
 		System.out.println("Successfully attached policy " + policy_arn + " to user " + username);
 
 		resultMap.put("username", responseCreateUser.getUser().getUserName());
@@ -154,7 +133,7 @@ public class AwsService {
 		String access_key = applicationProperties.getAws().getAccessKeyId();
 
 		/*
-		 * 유저 삭제 순서 정책 제거 -> 액세스 키 제거 -> 유저 삭제
+		 * 유저 삭제 순서 : 정책 제거 -> 액세스 키 제거 -> 유저 삭제
 		 */
 		final AmazonIdentityManagement iam = AmazonIdentityManagementClientBuilder.defaultClient();
 
@@ -198,31 +177,23 @@ public class AwsService {
 				.withCredentials(new AWSStaticCredentialsProvider(awsCreds)).build();
 		return ec2;
 	}
-	
+
 	/**
 	 * 현재 계정에 있는 EC2 인스턴스 목록 출력
-	 * @param filter 
+	 * 
+	 * 
 	 * 
 	 * @return
 	 */
 
-	public ArrayList<Object> listEC2(String state) {
+	public ArrayList<Object> listEC2() {
 		ArrayList<Object> resultList = new ArrayList<>();
 		int i = 0;
 
 		AmazonEC2 ec2 = ec2Client();
-		
-		Filter filter = new Filter("instance-state-name");
-        filter.withValues(state);
-        
+
 		DescribeInstancesRequest request = new DescribeInstancesRequest();
 		boolean done = false;
-		
-//		if(!(state.equalsIgnoreCase("all")) || state==null) {
-//			request.withFilters(filter);
-//		}
-		
-        
 
 		while (!done) {
 			DescribeInstancesResult response = ec2.describeInstances(request);
@@ -230,16 +201,16 @@ public class AwsService {
 			for (Reservation reservation : response.getReservations()) {
 				for (Instance instance : reservation.getInstances()) {
 
-					   Map<String, Object> resultMap = new HashMap<>();
-		               resultMap.put("instance_id", instance.getInstanceId());
-		               resultMap.put("state", instance.getState().getName());
-		               
-		               resultList.add(i, resultMap);
+					Map<String, Object> resultMap = new HashMap<>();
+					resultMap.put("instance_id", instance.getInstanceId());
+					resultMap.put("state", instance.getState().getName());
+
+					resultList.add(i, resultMap);
 
 					i++;
 				}
 			}
-			
+
 			request.setNextToken(response.getNextToken());
 
 			if (response.getNextToken() == null) {
@@ -252,23 +223,21 @@ public class AwsService {
 	}
 
 	/**
-	 * 
-	 * 새로운 인스턴스 생성
-	 * 
+	 * 인스턴스 시작
+	 * @param name
 	 * @return
 	 */
 	public Map<String, Object> createEC2(String name) {
 
 		String ami_id = applicationProperties.getAws().getAmi_id();
 
-	
-        
-		AmazonEC2 ec2 = ec2Client();     
-		
+		AmazonEC2 ec2 = ec2Client();
+
 		// test 키페어는 인스턴스 연결에 사용할 키페어로 미리 생성해두어야 한다.
 		// AlloSSH 보안그룹은 콘솔에서 미리 생성한 보안그룹으로, 22포트 인바운드를 열어두었다. (인스턴스 연결을 위해)
 		RunInstancesRequest run_request = new RunInstancesRequest().withImageId(ami_id)
-				.withInstanceType(InstanceType.T2Micro).withMaxCount(1).withMinCount(1).withKeyName("test").withSecurityGroups("AllowSSH");
+				.withInstanceType(InstanceType.T2Micro).withMaxCount(1).withMinCount(1).withKeyName("test")
+				.withSecurityGroups("AllowSSH");
 
 		RunInstancesResult run_response = ec2.runInstances(run_request);
 
@@ -277,12 +246,8 @@ public class AwsService {
 		Tag tag = new Tag().withKey("Name").withValue(name);
 
 		CreateTagsRequest tag_request = new CreateTagsRequest().withTags(tag);
-		//CreateTagsResult tag_response = ec2.createTags(tag_request);
-		
-        
+		// CreateTagsResult tag_response = ec2.createTags(tag_request);
 
-        
-		
 		Map<String, Object> resultMap = new HashMap<>();
 		resultMap.put("instance_id", reservation_id);
 
@@ -290,9 +255,8 @@ public class AwsService {
 	}
 
 	/**
-	 * 
 	 * 인스턴스 시작
-	 * 
+	 * @param instance_id
 	 * @return
 	 */
 	public Map<String, Object> startEC2(String instance_id) {
@@ -324,8 +288,9 @@ public class AwsService {
 	}
 
 	/**
-	 * 
 	 * 인스턴스 중지
+	 * @param instance_id
+	 * @return
 	 */
 	public Map<String, Object> stopEC2(String instance_id) {
 
@@ -354,12 +319,11 @@ public class AwsService {
 		return resultMap;
 	}
 
-	/**
-	 * 
-	 * 인스턴스 종료
-	 * 
-	 * @return
-	 */
+/**
+ * 인스턴스 종료
+ * @param instance_id
+ * @return
+ */
 	public Map<String, Object> terminateEC2(String instance_id) {
 		Map<String, Object> resultMap = new HashMap<>();
 
@@ -372,7 +336,8 @@ public class AwsService {
 		};
 
 		DryRunResult dry_response = ec2.dryRun(dry_request);
-
+		
+		
 		if (!dry_response.isSuccessful()) {
 			System.out.printf("Failed dry run to start instance %s", instance_id);
 
@@ -411,14 +376,14 @@ public class AwsService {
 
 			for (Reservation reservation : response.getReservations()) {
 				for (Instance instance : reservation.getInstances()) {
-						resultMap.put("instance_id", instance.getInstanceId());
-						resultMap.put("ami", instance.getImageId());
-						resultMap.put("state", instance.getState().getName());
-						resultMap.put("type",instance.getInstanceType());
-						resultMap.put("monitoring_state", instance.getMonitoring().getState());
-						resultMap.put("launchTime", instance.getLaunchTime());
-						resultMap.put("public_DNS", instance.getPublicDnsName());
-				
+					resultMap.put("instance_id", instance.getInstanceId());
+					resultMap.put("ami", instance.getImageId());
+					resultMap.put("state", instance.getState().getName());
+					resultMap.put("type", instance.getInstanceType());
+					resultMap.put("monitoring_state", instance.getMonitoring().getState());
+					resultMap.put("launchTime", instance.getLaunchTime());
+					resultMap.put("public_DNS", instance.getPublicDnsName());
+
 				}
 			}
 

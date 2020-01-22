@@ -1,4 +1,5 @@
 package kr.co.starlabs.controller.aws;
+
 import java.util.Map;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -23,7 +24,7 @@ import java.util.ArrayList;
 public class AwsController {
 
 	private static final Logger logger = LoggerFactory.getLogger(AwsController.class);
-	
+
 	@Autowired
 	private AwsService awsService;
 
@@ -57,9 +58,9 @@ public class AwsController {
 	}
 
 	@RequestMapping("/listEc2")
-	public String listEc2(Model model, @RequestParam(value = "filter", required = false) String filter) {
-		
-		ArrayList<Object> resultList = awsService.listEC2(filter);
+	public String listEc2(Model model) {
+
+		ArrayList<Object> resultList = awsService.listEC2();
 
 		model.addAttribute("instances", resultList);
 
@@ -72,11 +73,18 @@ public class AwsController {
 		String name = UUID.randomUUID().toString();
 
 		Map<String, Object> resultMap = awsService.createEC2(name);
-		model.addAttribute("instance_id", resultMap.get("instance_id"));	
+		model.addAttribute("instance_id", resultMap.get("instance_id"));
 
 		return "main";
 	}
 
+	
+	/**
+	 * 
+	 * @param model
+	 * @param instance_id
+	 * @return
+	 */
 	@RequestMapping("/startEc2")
 	public String startEc2(Model model, @RequestParam("instance_id") String instance_id) {
 		Map<String, Object> resultMap = awsService.startEC2(instance_id);
@@ -85,6 +93,12 @@ public class AwsController {
 		return "main";
 	}
 
+	/**
+	 * 
+	 * @param model
+	 * @param instance_id
+	 * @return
+	 */
 	@RequestMapping("/stopEc2")
 	public String stopEc2(Model model, @RequestParam("instance_id") String instance_id) {
 		Map<String, Object> resultMap = awsService.stopEC2(instance_id);
@@ -93,14 +107,26 @@ public class AwsController {
 		return "main";
 	}
 
+	/**
+	 * 
+	 * @param model
+	 * @param instance_id
+	 * @return
+	 */
 	@RequestMapping("/terminateEc2")
 	public String terminateEc2(Model model, @RequestParam("instance_id") String instance_id) {
 		Map<String, Object> resultMap = awsService.terminateEC2(instance_id);
 		model.addAttribute("instance_id", resultMap.get("instance_id"));
-		
+
 		return "main";
 	}
-	
+
+	/**
+	 * 
+	 * @param model
+	 * @param instance_id
+	 * @return
+	 */
 	@RequestMapping("/descEc2")
 	public String descEc2(Model model, @RequestParam("instance_id") String instance_id) {
 
