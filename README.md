@@ -26,4 +26,4 @@
 * [AWS CLI 설치](https://docs.aws.amazon.com/ko_kr/cli/latest/userguide/cli-chap-install.html)
 * [AWS CLI 자격 증명 파일 설정](https://docs.aws.amazon.com/ko_kr/cli/latest/userguide/cli-configure-files.html)
 * 생성한 자격 증명 파일에는 IAMFullAccess 권한 필요
-* 인스턴스 연결 시 보안그룹 생성 및 키페어 생성 필요
+* 인스턴스 연결 시 보안그룹 생성 및 키페어 생성 필요 

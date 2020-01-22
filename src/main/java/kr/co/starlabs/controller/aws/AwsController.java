@@ -78,7 +78,6 @@ public class AwsController {
 		return "main";
 	}
 
-	
 	/**
 	 * 
 	 * @param model
@@ -87,6 +86,7 @@ public class AwsController {
 	 */
 	@RequestMapping("/startEc2")
 	public String startEc2(Model model, @RequestParam("instance_id") String instance_id) {
+		logger.debug("instance_id [{}]", instance_id);
 		Map<String, Object> resultMap = awsService.startEC2(instance_id);
 		model.addAttribute("instance_id", resultMap.get("instance_id"));
 
@@ -101,6 +101,7 @@ public class AwsController {
 	 */
 	@RequestMapping("/stopEc2")
 	public String stopEc2(Model model, @RequestParam("instance_id") String instance_id) {
+		logger.debug("instance_id [{}]", instance_id);
 		Map<String, Object> resultMap = awsService.stopEC2(instance_id);
 		model.addAttribute("instance_id", resultMap.get("instance_id"));
 
@@ -115,6 +116,7 @@ public class AwsController {
 	 */
 	@RequestMapping("/terminateEc2")
 	public String terminateEc2(Model model, @RequestParam("instance_id") String instance_id) {
+		logger.debug("instance_id [{}]", instance_id);
 		Map<String, Object> resultMap = awsService.terminateEC2(instance_id);
 		model.addAttribute("instance_id", resultMap.get("instance_id"));
 
@@ -129,7 +131,7 @@ public class AwsController {
 	 */
 	@RequestMapping("/descEc2")
 	public String descEc2(Model model, @RequestParam("instance_id") String instance_id) {
-
+		logger.debug("instance_id [{}]", instance_id);
 		Map<String, Object> resultMap = awsService.descEC2(instance_id);
 
 		model.addAttribute("instance_id", resultMap.get("instance_id"));

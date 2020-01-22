@@ -9,7 +9,8 @@ spring:
 # accessKeyId, accessKeySecret의 기본 값은 로컬에 있는 자격 증명 파일 참고.
 # policy_arn은 새로운 IAM 유저에게 부여 할 정책 
 # ami_id은 생성 할 인스턴스의 기본값
-# 
+# secureGroups 생성할 인스턴스에 연결할 보안그룹
+# accessKeyName 생성핳 인스턴스에 연결할 떄 사용할 키페어 이름
 application:
   aws:
     username : Users
@@ -18,3 +19,5 @@ application:
     policy_arn: arn:aws:iam::aws:policy/AmazonEC2FullAccess
     ami_id: ami-0bea7fd38fabe821a
     region: ap-northeast-2
+    secureGroups: AllowSSH
+    accessKeyName: test

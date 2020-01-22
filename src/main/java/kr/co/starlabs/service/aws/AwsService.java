@@ -113,12 +113,13 @@ public class AwsService {
 
 		System.out.println("Successfully attached policy " + policy_arn + " to user " + username);
 
-		resultMap.put("username", responseCreateUser.getUser().getUserName());
-
 		// 생성한 유저의 액세스 키 ID,시크릿 키를 기본 값으로 지정
 		applicationProperties.getAws().setUsername(username);
 		applicationProperties.getAws().setAccessKeyId(responseAccessKey.getAccessKey().getAccessKeyId());
 		applicationProperties.getAws().setAccessKeySecret(responseAccessKey.getAccessKey().getSecretAccessKey());
+
+		resultMap.put("username", responseCreateUser.getUser().getUserName());
+		logger.debug("username [{}]", username);
 
 		return resultMap;
 	}
@@ -207,6 +208,8 @@ public class AwsService {
 
 					resultList.add(i, resultMap);
 
+					logger.debug("listEc2 parameters [{}, {}]", instance.getInstanceId(),
+							instance.getState().getName());
 					i++;
 				}
 			}
@@ -224,6 +227,7 @@ public class AwsService {
 
 	/**
 	 * 인스턴스 시작
+	 * 
 	 * @param name
 	 * @return
 	 */
@@ -232,12 +236,13 @@ public class AwsService {
 		String ami_id = applicationProperties.getAws().getAmi_id();
 
 		AmazonEC2 ec2 = ec2Client();
-
+		String secureGroups = applicationProperties.getAws().getSecureGroups();
+		String accessKeyName = applicationProperties.getAws().getAccessKeyName();
 		// test 키페어는 인스턴스 연결에 사용할 키페어로 미리 생성해두어야 한다.
 		// AlloSSH 보안그룹은 콘솔에서 미리 생성한 보안그룹으로, 22포트 인바운드를 열어두었다. (인스턴스 연결을 위해)
 		RunInstancesRequest run_request = new RunInstancesRequest().withImageId(ami_id)
-				.withInstanceType(InstanceType.T2Micro).withMaxCount(1).withMinCount(1).withKeyName("test")
-				.withSecurityGroups("AllowSSH");
+				.withInstanceType(InstanceType.T2Micro).withMaxCount(1).withMinCount(1).withKeyName(accessKeyName)
+				.withSecurityGroups(secureGroups);
 
 		RunInstancesResult run_response = ec2.runInstances(run_request);
 
@@ -250,12 +255,14 @@ public class AwsService {
 
 		Map<String, Object> resultMap = new HashMap<>();
 		resultMap.put("instance_id", reservation_id);
+		logger.debug("instance_id [{}]", reservation_id);
 
 		return resultMap;
 	}
 
 	/**
 	 * 인스턴스 시작
+	 * 
 	 * @param instance_id
 	 * @return
 	 */
@@ -283,12 +290,14 @@ public class AwsService {
 		System.out.printf("Successfully started instance %s", instance_id);
 
 		resultMap.put("instance_id", instance_id);
+		logger.debug("instance_id [{}]", instance_id);
 
 		return resultMap;
 	}
 
 	/**
 	 * 인스턴스 중지
+	 * 
 	 * @param instance_id
 	 * @return
 	 */
@@ -315,15 +324,17 @@ public class AwsService {
 
 		Map<String, Object> resultMap = new HashMap<>();
 		resultMap.put("instance_id", instance_id);
+		logger.debug("instance_id [{}]", instance_id);
 
 		return resultMap;
 	}
 
-/**
- * 인스턴스 종료
- * @param instance_id
- * @return
- */
+	/**
+	 * 인스턴스 종료
+	 * 
+	 * @param instance_id
+	 * @return
+	 */
 	public Map<String, Object> terminateEC2(String instance_id) {
 		Map<String, Object> resultMap = new HashMap<>();
 
@@ -336,8 +347,7 @@ public class AwsService {
 		};
 
 		DryRunResult dry_response = ec2.dryRun(dry_request);
-		
-		
+
 		if (!dry_response.isSuccessful()) {
 			System.out.printf("Failed dry run to start instance %s", instance_id);
 
@@ -351,6 +361,7 @@ public class AwsService {
 		System.out.printf("Successfully terminated instance %s", instance_id);
 
 		resultMap.put("instance_id", instance_id);
+		logger.debug("instance_id [{}]", instance_id);
 
 		return resultMap;
 	}
@@ -384,6 +395,9 @@ public class AwsService {
 					resultMap.put("launchTime", instance.getLaunchTime());
 					resultMap.put("public_DNS", instance.getPublicDnsName());
 
+					logger.debug("descEc2 parameters [{}, {}, {}, {}, {}, {}, {}]", instance.getInstanceId(),
+							instance.getImageId(), instance.getState().getName(), instance.getInstanceType(),
+							instance.getMonitoring().getState(), instance.getLaunchTime(), instance.getPublicDnsName());
 				}
 			}
 

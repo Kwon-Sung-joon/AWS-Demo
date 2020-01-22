@@ -21,7 +21,22 @@ public class ApplicationProperties {
 		private String policy_arn;
 		private String ami_id;
 		private String region;
-
+		private String secureGroups;
+		private String accessKeyName;
+		
+		public String getAccessKeyName() {
+			return accessKeyName;
+		}
+		public void setAccessKeyName(String accessKeyName) {
+			this.accessKeyName = accessKeyName;
+		}
+		public String getSecureGroups() {
+			return secureGroups;
+		}
+		public void setSecureGroups(String secureGroups) {
+			this.secureGroups = secureGroups;
+		}
+	
 		public String getRegion() {
 			return region;
 		}

@@ -60,8 +60,14 @@
 		</dependency>
 
 
-		<!-- aws sdk for java bom (개별 모둘 지정) -->
 
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>1.7.25</version>
+		</dependency>
+		
+		
 		<!-- aws sdk iam -->
 		<dependency>
 			<groupId>com.amazonaws</groupId>
