@@ -1,6 +1,4 @@
 package kr.co.starlabs.controller.aws;
-
-import java.util.ArrayList;
 import java.util.Map;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -13,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import kr.co.starlabs.service.aws.AwsService;
 
+import java.util.ArrayList;
 
 /**
  * 
@@ -20,12 +19,11 @@ import kr.co.starlabs.service.aws.AwsService;
  *
  */
 
-
 @Controller
 public class AwsController {
 
 	private static final Logger logger = LoggerFactory.getLogger(AwsController.class);
-
+	
 	@Autowired
 	private AwsService awsService;
 
@@ -46,6 +44,7 @@ public class AwsController {
 		String username = "User_" + UUID.randomUUID().toString();
 		Map<String, Object> resultMap = awsService.createUser(username);
 		model.addAttribute("username", resultMap.get("username"));
+
 		return "create";
 	}
 
@@ -73,7 +72,7 @@ public class AwsController {
 		String name = UUID.randomUUID().toString();
 
 		Map<String, Object> resultMap = awsService.createEC2(name);
-		model.addAttribute("instance_id", resultMap.get("instance_id"));
+		model.addAttribute("instance_id", resultMap.get("instance_id"));	
 
 		return "main";
 	}
@@ -98,10 +97,10 @@ public class AwsController {
 	public String terminateEc2(Model model, @RequestParam("instance_id") String instance_id) {
 		Map<String, Object> resultMap = awsService.terminateEC2(instance_id);
 		model.addAttribute("instance_id", resultMap.get("instance_id"));
-
+		
 		return "main";
 	}
-
+	
 	@RequestMapping("/descEc2")
 	public String descEc2(Model model, @RequestParam("instance_id") String instance_id) {
 
@@ -113,6 +112,7 @@ public class AwsController {
 		model.addAttribute("state", resultMap.get("state"));
 		model.addAttribute("monitoring_state", resultMap.get("monitoring_state"));
 		model.addAttribute("launchTime", resultMap.get("launchTime"));
+		model.addAttribute("public_DNS", resultMap.get("public_DNS"));
 
 		return "main";
 	}

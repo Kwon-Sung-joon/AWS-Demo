@@ -44,7 +44,6 @@ import com.amazonaws.services.ec2.model.DescribeInstancesResult;
 import com.amazonaws.services.ec2.model.Tag;
 import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
 import com.amazonaws.services.ec2.model.CreateTagsRequest;
-
 import kr.co.starlabs.config.ApplicationProperties;
 
 /**
@@ -88,10 +87,11 @@ public class AwsService {
 
 	public Map<String, Object> createUser(String username) {
 
+		
 		Map<String, Object> resultMap = new HashMap<>();
 
 		final AmazonIdentityManagement iam = AmazonIdentityManagementClientBuilder.defaultClient();
-
+		
 		// IAM 유저 생성
 		CreateUserRequest requestCreateUser = new CreateUserRequest().withUserName(username);
 		CreateUserResult responseCreateUser = iam.createUser(requestCreateUser);
@@ -261,10 +261,14 @@ public class AwsService {
 
 		String ami_id = applicationProperties.getAws().getAmi_id();
 
-		AmazonEC2 ec2 = ec2Client();
-
+	
+        
+		AmazonEC2 ec2 = ec2Client();     
+		
+		// test 키페어는 인스턴스 연결에 사용할 키페어로 미리 생성해두어야 한다.
+		// AlloSSH 보안그룹은 콘솔에서 미리 생성한 보안그룹으로, 22포트 인바운드를 열어두었다. (인스턴스 연결을 위해)
 		RunInstancesRequest run_request = new RunInstancesRequest().withImageId(ami_id)
-				.withInstanceType(InstanceType.T2Micro).withMaxCount(1).withMinCount(1);
+				.withInstanceType(InstanceType.T2Micro).withMaxCount(1).withMinCount(1).withKeyName("test").withSecurityGroups("AllowSSH");
 
 		RunInstancesResult run_response = ec2.runInstances(run_request);
 
@@ -273,8 +277,12 @@ public class AwsService {
 		Tag tag = new Tag().withKey("Name").withValue(name);
 
 		CreateTagsRequest tag_request = new CreateTagsRequest().withTags(tag);
+		//CreateTagsResult tag_response = ec2.createTags(tag_request);
+		
+        
 
-		// CreateTagsResult tag_response = ec2.createTags(tag_request);
+        
+		
 		Map<String, Object> resultMap = new HashMap<>();
 		resultMap.put("instance_id", reservation_id);
 
@@ -403,13 +411,13 @@ public class AwsService {
 
 			for (Reservation reservation : response.getReservations()) {
 				for (Instance instance : reservation.getInstances()) {
-					
 						resultMap.put("instance_id", instance.getInstanceId());
 						resultMap.put("ami", instance.getImageId());
 						resultMap.put("state", instance.getState().getName());
 						resultMap.put("type",instance.getInstanceType());
 						resultMap.put("monitoring_state", instance.getMonitoring().getState());
 						resultMap.put("launchTime", instance.getLaunchTime());
+						resultMap.put("public_DNS", instance.getPublicDnsName());
 				
 				}
 			}
