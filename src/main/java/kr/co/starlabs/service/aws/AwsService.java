@@ -197,8 +197,6 @@ public class AwsService {
 				.withCredentials(new AWSStaticCredentialsProvider(awsCreds)).build();
 		return ec2;
 	}
-	
-	
 
 	/**
 	 * 현재 계정에 있는 EC2 인스턴스 목록 출력
@@ -416,9 +414,9 @@ public class AwsService {
 					resultMap.put("launchTime", instance.getLaunchTime());
 					resultMap.put("public_DNS", instance.getPublicDnsName());
 
-					//모니터링을 위해 런티차임 저장
+					// 모니터링을 위해 런티차임 저장
 					applicationProperties.getAws().setStartTime(instance.getLaunchTime());
-					
+
 					logger.debug("descEc2 parameters [{}, {}, {}, {}, {}, {}, {}]", instance.getInstanceId(),
 							instance.getImageId(), instance.getState().getName(), instance.getInstanceType(),
 							instance.getMonitoring().getState(), instance.getLaunchTime(), instance.getPublicDnsName());
@@ -438,24 +436,25 @@ public class AwsService {
 
 	public ArrayList<Object> monitoringDesc(String instance_id, String metricName) {
 
-		
 		ArrayList<Object> resultList = new ArrayList<>();
-		
+
 		Date endTime = new Date();
 		// 지표 데이터를 가져올 간격( 기본값은 최소 5분, 세부 모니터링 활성화 시 1분 까지 가능)
 		Integer integer = new Integer(300);
 
-	
-
-		final AmazonCloudWatch cw = AmazonCloudWatchClientBuilder.defaultClient();
+		BasicAWSCredentials awsCreds = new BasicAWSCredentials(applicationProperties.getAws().getAccessKeyId(),
+				applicationProperties.getAws().getAccessKeySecret());
+		final AmazonCloudWatch cw = AmazonCloudWatchClientBuilder.standard()
+				.withRegion(applicationProperties.getAws().getRegion())
+				.withCredentials(new AWSStaticCredentialsProvider(awsCreds)).build();
 
 		// 인스턴스 id로 필터링
 		Dimension filter = new Dimension();
 		filter.setName("InstanceId");
 		filter.setValue(instance_id);
 
-		GetMetricDataRequest md = new GetMetricDataRequest().withEndTime(endTime).withStartTime(applicationProperties.getAws().getStartTime())
-				.withMetricDataQueries();
+		GetMetricDataRequest md = new GetMetricDataRequest().withEndTime(endTime)
+				.withStartTime(applicationProperties.getAws().getStartTime()).withMetricDataQueries();
 
 		Metric metric = new Metric().withNamespace("AWS/EC2").withDimensions(filter).withMetricName(metricName);
 
@@ -467,25 +466,29 @@ public class AwsService {
 		GetMetricDataResult rms = cw.getMetricData(md);
 		// rms.getMetricDataResults();
 		System.out.println(rms.getMetricDataResults());
-		
 
-		
-		for(int i=0; i<rms.getMetricDataResults().get(0).getTimestamps().size(); i++) {
+		for (int i = 0; i < rms.getMetricDataResults().get(0).getTimestamps().size(); i++) {
 			Map<String, Object> resultMap = new HashMap<>();
-			resultMap.put("values", rms.getMetricDataResults().get(0).getValues().get(rms.getMetricDataResults().get(0).getTimestamps().size()-(1+i)));
-			resultMap.put("time", rms.getMetricDataResults().get(0).getTimestamps().get(rms.getMetricDataResults().get(0).getTimestamps().size()-(1+i)));
+			resultMap.put("values", rms.getMetricDataResults().get(0).getValues()
+					.get(rms.getMetricDataResults().get(0).getTimestamps().size() - (1 + i)));
+			resultMap.put("time", rms.getMetricDataResults().get(0).getTimestamps()
+					.get(rms.getMetricDataResults().get(0).getTimestamps().size() - (1 + i)));
 
 			resultList.add(i, resultMap);
 		}
-				
-		
+
 		return resultList;
 	}
 
 	public ArrayList<Object> monitoringList(String instance_id) {
 		ArrayList<Object> resultList = new ArrayList<>();
 		int i = 0;
-		final AmazonCloudWatch cw = AmazonCloudWatchClientBuilder.defaultClient();
+
+		BasicAWSCredentials awsCreds = new BasicAWSCredentials(applicationProperties.getAws().getAccessKeyId(),
+				applicationProperties.getAws().getAccessKeySecret());
+		final AmazonCloudWatch cw = AmazonCloudWatchClientBuilder.standard()
+				.withRegion(applicationProperties.getAws().getRegion())
+				.withCredentials(new AWSStaticCredentialsProvider(awsCreds)).build();
 
 		DimensionFilter dimensions = new DimensionFilter();
 		dimensions.setName("InstanceId");
@@ -512,6 +515,4 @@ public class AwsService {
 		return resultList;
 	}
 
-	
-	
 }

@@ -161,7 +161,7 @@ public class AwsController {
 	public String monitoringDesc(Model model,@RequestParam("instance_id") String instance_id, @RequestParam("metricName") String metricName) {
 		logger.debug("monitoring params [{}]", instance_id, metricName);
 		ArrayList<Object> resultList = awsService.monitoringDesc(instance_id, metricName);
-		System.out.println(resultList);
+
 		model.addAttribute("monitoring", resultList);
 		model.addAttribute("metricName",metricName);
 		model.addAttribute("instance_id",instance_id);
