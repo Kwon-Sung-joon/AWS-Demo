@@ -161,8 +161,10 @@ public class AwsController {
 	@RequestMapping("/monitoringDesc")
 	public String monitoringDesc(Model model,@RequestParam("instance_id") String instance_id, @RequestParam("metricName") String metricName) {
 		logger.debug("monitoring params [{}]", instance_id, metricName);
-		Map<String, Object> resultMap = awsService.monitoringDesc(instance_id, metricName);
+		ArrayList<Object> resultList = awsService.monitoringDesc(instance_id, metricName);
 		
+		model.addAttribute("monitoring", resultList);
+
 		model.addAttribute("instance_id",instance_id);
 		
 		return "monitoringDesc";

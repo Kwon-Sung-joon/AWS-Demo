@@ -186,7 +186,7 @@ public class AwsService {
 	 * 
 	 * @return
 	 */
-	public AmazonEC2 ec2Client() {
+	public AmazonEC2 client() {
 
 		String accessKeyId = applicationProperties.getAws().getAccessKeyId();
 		String accessKeySecret = applicationProperties.getAws().getAccessKeySecret();
@@ -197,6 +197,8 @@ public class AwsService {
 				.withCredentials(new AWSStaticCredentialsProvider(awsCreds)).build();
 		return ec2;
 	}
+	
+	
 
 	/**
 	 * 현재 계정에 있는 EC2 인스턴스 목록 출력
@@ -210,7 +212,7 @@ public class AwsService {
 		ArrayList<Object> resultList = new ArrayList<>();
 		int i = 0;
 
-		AmazonEC2 ec2 = ec2Client();
+		AmazonEC2 ec2 = client();
 
 		DescribeInstancesRequest request = new DescribeInstancesRequest();
 		boolean done = false;
@@ -254,7 +256,7 @@ public class AwsService {
 
 		String ami_id = applicationProperties.getAws().getAmi_id();
 
-		AmazonEC2 ec2 = ec2Client();
+		AmazonEC2 ec2 = client();
 		String secureGroups = applicationProperties.getAws().getSecureGroups();
 		String accessKeyName = applicationProperties.getAws().getAccessKeyName();
 		// test 키페어는 인스턴스 연결에 사용할 키페어로 미리 생성해두어야 한다.
@@ -288,7 +290,7 @@ public class AwsService {
 	public Map<String, Object> startEC2(String instance_id) {
 		Map<String, Object> resultMap = new HashMap<>();
 
-		AmazonEC2 ec2 = ec2Client();
+		AmazonEC2 ec2 = client();
 
 		DryRunSupportedRequest<StartInstancesRequest> dry_request = () -> {
 			StartInstancesRequest request = new StartInstancesRequest().withInstanceIds(instance_id);
@@ -322,7 +324,7 @@ public class AwsService {
 	 */
 	public Map<String, Object> stopEC2(String instance_id) {
 
-		AmazonEC2 ec2 = ec2Client();
+		AmazonEC2 ec2 = client();
 		DryRunSupportedRequest<StopInstancesRequest> dry_request = () -> {
 			StopInstancesRequest request = new StopInstancesRequest().withInstanceIds(instance_id);
 
@@ -357,7 +359,7 @@ public class AwsService {
 	public Map<String, Object> terminateEC2(String instance_id) {
 		Map<String, Object> resultMap = new HashMap<>();
 
-		AmazonEC2 ec2 = ec2Client();
+		AmazonEC2 ec2 = client();
 
 		DryRunSupportedRequest<TerminateInstancesRequest> dry_request = () -> {
 			TerminateInstancesRequest request = new TerminateInstancesRequest().withInstanceIds(instance_id);
@@ -395,7 +397,7 @@ public class AwsService {
 
 		Map<String, Object> resultMap = new HashMap<>();
 
-		AmazonEC2 ec2 = ec2Client();
+		AmazonEC2 ec2 = client();
 
 		boolean done = false;
 		DescribeInstancesRequest request = new DescribeInstancesRequest();
@@ -434,14 +436,16 @@ public class AwsService {
 
 	}
 
-	public Map<String, Object> monitoringDesc(String instance_id, String metricName) {
+	public ArrayList<Object> monitoringDesc(String instance_id, String metricName) {
 
+		
+		ArrayList<Object> resultList = new ArrayList<>();
+		
 		Date endTime = new Date();
 		// 지표 데이터를 가져올 간격( 기본값은 최소 5분, 세부 모니터링 활성화 시 1분 까지 가능)
 		Integer integer = new Integer(300);
 
-		Map<String, Object> resultMap = new HashMap<>();
-		resultMap.put("qwe", "qwe");
+	
 
 		final AmazonCloudWatch cw = AmazonCloudWatchClientBuilder.defaultClient();
 
@@ -463,8 +467,16 @@ public class AwsService {
 		GetMetricDataResult rms = cw.getMetricData(md);
 		// rms.getMetricDataResults();
 		System.out.println(rms.getMetricDataResults());
+		
+		
+		
+		Map<String, Object> resultMap = new HashMap<>();
+		resultMap.put("label", rms.getMetricDataResults().get(0).getLabel());
+		resultMap.put("values", rms.getMetricDataResults().get(0).getValues());
+		resultMap.put("time", rms.getMetricDataResults().get(0).getTimestamps());
 
-		return resultMap;
+		resultList.add(0, resultMap);
+		return resultList;
 	}
 
 	public ArrayList<Object> monitoringList(String instance_id) {
