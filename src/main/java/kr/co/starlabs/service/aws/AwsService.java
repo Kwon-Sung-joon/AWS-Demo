@@ -472,12 +472,12 @@ public class AwsService {
 		
 		for(int i=0; i<rms.getMetricDataResults().get(0).getTimestamps().size(); i++) {
 			Map<String, Object> resultMap = new HashMap<>();
-			resultMap.put("label", rms.getMetricDataResults().get(0).getLabel());
 			resultMap.put("values", rms.getMetricDataResults().get(0).getValues().get(rms.getMetricDataResults().get(0).getTimestamps().size()-(1+i)));
 			resultMap.put("time", rms.getMetricDataResults().get(0).getTimestamps().get(rms.getMetricDataResults().get(0).getTimestamps().size()-(1+i)));
 
 			resultList.add(i, resultMap);
 		}
+				
 		
 		return resultList;
 	}

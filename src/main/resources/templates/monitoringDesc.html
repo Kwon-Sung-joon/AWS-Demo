@@ -7,12 +7,12 @@
 
 <body>
  
-   목록<br>
+Metric Name : {{#metricName}} {{.}} {{/metricName}} <br>   
 ----------------------------------------------------------- <br>
+	
    {{#monitoring}}
-   {{label}}
     <li>
-    {{time}}  {{values}} 
+    {{time}} --  {{values}} 
     </li> 
    {{/monitoring}} <br>
 ----------------------------------------------------------- <br>
