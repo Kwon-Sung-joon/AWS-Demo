@@ -1,24 +1,91 @@
 <!doctype html>
 <html>
 <head>
-	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>AWS EC2</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
+<title>AWS EC2</title>
 </head>
 
 <body>
- 
-Metric Name : {{#metricName}} {{.}} {{/metricName}} <br>   
------------------------------------------------------------ <br>
+	<div style="width: 75%;">
+		<canvas id="canvas"></canvas>
+	</div>
+
+
+	<script>
+		var label = new Array();
+		var data = new Array();
+		var name='';
+		{{#metricName}}
+			name = "{{.}}";
+			
+		{{/metricName}}
 	
-   {{#monitoring}}
-    <li>
-    {{time}} --  {{values}} 
-    </li> 
-   {{/monitoring}} <br>
------------------------------------------------------------ <br>
-<a href="http://localhost:8080/monitoringList?instance_id={{instance_id}}">모니터링 목록</a><br>
------------------------------------------------------------ <br>
-<a href="http://localhost:8080/logout">로그아웃</a><br>
+		
+		{{#monitoring}}
+			label.push("{{time}}");
+			data.push("{{values}}");
+		{{/monitoring}}
+		
+	
+		var config = {
+			type : 'line',
+			data : {
+				labels : label,
+				datasets : [ {
+					label : name,
+					data : data,
+		            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+		            borderColor: 'rgba(54, 162, 235, 1)',
+		            fill : false,
+				} ]
+			},
+			options : {
+				responsive : true,
+				tooltips : {
+					mode : 'index',
+					intersect : false,
+				},
+				hover : {
+					mode : 'nearest',
+					intersect : true
+				},
+				scales : {
+					x : {
+						display : true,
+						scaleLabel : {
+							display : true,
+							labelString : 'Month'
+						}
+					},
+					y : {
+						display : true,
+						scaleLabel : {
+							display : true,
+							labelString : 'Value'
+						}
+					}
+				}
+			}
+		};
+
+			var ctx = document.getElementById("canvas").getContext('2d');
+			var canvas = new Chart(ctx, config);
+	</script>
+
+<!-- 
+	Metric Name : {{#metricName}} {{.}} {{/metricName}}
+	<br> -----------------------------------------------------------
+	<br> {{#monitoring}}
+	<li>{{time}} -- {{values}}</li> {{/monitoring}}
+	<br> -----------------------------------------------------------
+ -->
+	<br>
+	<a href="http://localhost:8080/monitoringList?instance_id={{instance_id}}">뒤로</a>
+	<br> -----------------------------------------------------------
+	<br>
+	<a href="http://localhost:8080/logout">로그아웃</a>
+	<br>
 
 
 </body>

@@ -74,7 +74,7 @@ public class AwsService {
 
 	private static final Logger logger = LoggerFactory.getLogger(AwsService.class);
 
-	@Autowired
+	@Autowired	
 	private ApplicationProperties applicationProperties;
 
 	/**
@@ -464,8 +464,8 @@ public class AwsService {
 		md.withMetricDataQueries(metricDataQuery);
 
 		GetMetricDataResult rms = cw.getMetricData(md);
-		// rms.getMetricDataResults();
-		System.out.println(rms.getMetricDataResults());
+	
+		//System.out.println(rms.getMetricDataResults());
 
 		for (int i = 0; i < rms.getMetricDataResults().get(0).getTimestamps().size(); i++) {
 			Map<String, Object> resultMap = new HashMap<>();
