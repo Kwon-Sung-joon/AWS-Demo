@@ -3,6 +3,8 @@ package kr.co.starlabs.service.aws;
 import java.util.HashMap;
 
 import java.util.Map;
+import java.util.UUID;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,7 +44,6 @@ import com.amazonaws.services.identitymanagement.model.ListAttachedUserPoliciesR
 import com.amazonaws.services.identitymanagement.model.ListAttachedUserPoliciesResult;
 
 import java.util.Date;
-import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -62,6 +63,19 @@ import com.amazonaws.services.ec2.model.CreateTagsRequest;
 import com.amazonaws.services.ec2.model.MonitorInstancesRequest;
 import com.amazonaws.services.ec2.model.Monitoring;
 
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.cloudwatchevents.CloudWatchEventsClient;
+import software.amazon.awssdk.services.cloudwatchevents.model.PutEventsRequest;
+import software.amazon.awssdk.services.cloudwatchevents.model.PutEventsRequestEntry;
+import software.amazon.awssdk.services.cloudwatchevents.model.PutEventsResponse;
+import software.amazon.awssdk.services.cloudwatchevents.model.PutRuleRequest;
+import software.amazon.awssdk.services.cloudwatchevents.model.PutRuleResponse;
+import software.amazon.awssdk.services.cloudwatchevents.model.PutTargetsRequest;
+import software.amazon.awssdk.services.cloudwatchevents.model.PutTargetsResponse;
+import software.amazon.awssdk.services.cloudwatchevents.model.RuleState;
+import software.amazon.awssdk.services.cloudwatchevents.model.Target;
+import software.amazon.awssdk.services.cloudwatchlogs.CloudWatchLogsClient;
+import software.amazon.awssdk.services.cloudwatchlogs.model.GetLogEventsRequest;
 import kr.co.starlabs.config.ApplicationProperties;
 import kr.co.starlabs.controller.aws.AwsController;
 
@@ -75,7 +89,7 @@ public class AwsService {
 
 	private static final Logger logger = LoggerFactory.getLogger(AwsService.class);
 
-	@Autowired	
+	@Autowired
 	private ApplicationProperties applicationProperties;
 
 	/**
@@ -338,30 +352,27 @@ public class AwsService {
 		}
 
 		StopInstancesRequest request = new StopInstancesRequest().withInstanceIds(instance_id);
-		
-		ec2.stopInstances(request);		
-		
-		
-		//stopping이 아닌, stopped의 시간
+
+		ec2.stopInstances(request);
+
+		// stopping이 아닌, stopped의 시간
 		Date origin = null;
-		
-		while(ec2.stopInstances(request).getStoppingInstances().get(0).getCurrentState().getCode() != 80) {
-		
+
+		while (ec2.stopInstances(request).getStoppingInstances().get(0).getCurrentState().getCode() != 80) {
+
 			Date stopTime = new Date();
-			//인스턴스가 완전히 중지한 시간을 구함
+			// 인스턴스가 완전히 중지한 시간을 구함
 			origin = stopTime;
 		}
-		if(origin != null) {
+		if (origin != null) {
 			applicationProperties.getAws().setStopTime(origin);
 		}
 		System.out.printf("Successfully stop instance %s", instance_id);
-		
-		
+
 		Map<String, Object> resultMap = new HashMap<>();
 		resultMap.put("instance_id", instance_id);
-		
+
 		logger.debug("instance_id [{}]", instance_id);
-		
 
 		return resultMap;
 	}
@@ -431,10 +442,9 @@ public class AwsService {
 					resultMap.put("monitoring_state", instance.getMonitoring().getState());
 					resultMap.put("launchTime", instance.getLaunchTime());
 					resultMap.put("public_DNS", instance.getPublicDnsName());
-					resultMap.put("stateTransition",instance.getStateTransitionReason());
-					resultMap.put("stopTime",applicationProperties.getAws().getStopTime());
-					
-					
+					resultMap.put("stateTransition", instance.getStateTransitionReason());
+					resultMap.put("stopTime", applicationProperties.getAws().getStopTime());
+
 					// 모니터링을 위해 런티차임 저장
 					applicationProperties.getAws().setStartTime(instance.getLaunchTime());
 
@@ -485,8 +495,8 @@ public class AwsService {
 		md.withMetricDataQueries(metricDataQuery);
 
 		GetMetricDataResult rms = cw.getMetricData(md);
-	
-		//System.out.println(rms.getMetricDataResults());
+
+		// System.out.println(rms.getMetricDataResults());
 
 		for (int i = 0; i < rms.getMetricDataResults().get(0).getTimestamps().size(); i++) {
 			Map<String, Object> resultMap = new HashMap<>();
@@ -502,14 +512,18 @@ public class AwsService {
 	}
 
 	public ArrayList<Object> monitoringList(String instance_id) {
+
 		ArrayList<Object> resultList = new ArrayList<>();
 		int i = 0;
 
 		BasicAWSCredentials awsCreds = new BasicAWSCredentials(applicationProperties.getAws().getAccessKeyId(),
 				applicationProperties.getAws().getAccessKeySecret());
+
 		final AmazonCloudWatch cw = AmazonCloudWatchClientBuilder.standard()
 				.withRegion(applicationProperties.getAws().getRegion())
 				.withCredentials(new AWSStaticCredentialsProvider(awsCreds)).build();
+
+		System.out.println("Successfully put CloudWatch event");
 
 		DimensionFilter dimensions = new DimensionFilter();
 		dimensions.setName("InstanceId");
@@ -536,4 +550,58 @@ public class AwsService {
 		return resultList;
 	}
 
+	public Map<String, Object> logEC2(String instance_id) {
+		// CloudWatch 규칙생성 및 로그그룹 연결
+		// IAM 유저에 CloudWatchLogsFullAccess, CloudWatchEventsFullAccess 정책 추가 필요
+		CloudWatchEventsClient cwe = CloudWatchEventsClient.builder().build();
+
+		// 이벤트 규칙 이름 생성
+		String rule_name = "ec2_state_rule_" + UUID.randomUUID().toString();
+
+		// 이벤트 패턴 JSON 형식
+		// 매개변수 instance_id 를 eventPattern 에 넣기
+		String eventPattern = "{\r\n" + "  \"source\": [\r\n" + "    \"aws.ec2\"\r\n" + "  ],\r\n"
+				+ "  \"detail-type\": [\r\n" + "    \"EC2 Instance State-change Notification\"\r\n" + "  ],\r\n"
+				+ "  \"detail\": {\r\n" + "    \"state\": [\r\n" + "      \"stopped\",\r\n" + "      \"running\",\r\n"
+				+ "      \"terminated\"\r\n" + "    ],\r\n" + "    \"instance-id\": [\r\n"
+				+ "      \"i-07b8ff5494d0ff5e7\"\r\n" + "    ]\r\n" + "  }\r\n" + "}";
+
+		PutRuleRequest ruleRequest = PutRuleRequest.builder().name(rule_name).state(RuleState.ENABLED)
+				.eventPattern(eventPattern).build();
+
+		PutRuleResponse ruleResponse = cwe.putRule(ruleRequest);
+
+		System.out.printf("Successfully created CloudWatch events rule %s with arn %s", rule_name,
+				ruleResponse.ruleArn());
+
+		// arn = 로그그룹 arn id= ??
+		Target target = Target.builder().arn("arn:aws:logs:ap-northeast-2:672956273056:log-group:/aws/events/logs:*")
+				.id("asd").build();
+
+		// 앞서 생성한 규칙으로 타겟 생성
+		PutTargetsRequest request1 = PutTargetsRequest.builder().targets(target).rule(rule_name).build();
+
+		PutTargetsResponse response = cwe.putTargets(request1);
+		// snippet-end:[cloudwatch.java2.put_targets.main]
+
+		System.out.println("Successfully created CloudWatch events target for rule " + rule_name);
+
+		CloudWatchLogsClient cloudWatchLogsClient = CloudWatchLogsClient.builder().region(Region.AP_NORTHEAST_2)
+				.build();
+		// 로그 이벤트 가져오기 ==> 데이터 확인
+		GetLogEventsRequest getLogEventsRequest = GetLogEventsRequest.builder().logGroupName("/aws/events/logs")
+				.logStreamName("asd").startFromHead(true).build();
+
+		int logLimit = cloudWatchLogsClient.getLogEvents(getLogEventsRequest).events().size();
+		for (int c = 0; c < logLimit; c++) {
+			// Prints the messages to the console
+			System.out.println(cloudWatchLogsClient.getLogEvents(getLogEventsRequest).events().get(c).message());
+		}
+		System.out.println("Successfully got CloudWatch log events!");
+
+		/**
+		 * 로그 데이터 리턴
+		 */
+		return null;
+	}
 }

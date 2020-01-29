@@ -148,6 +148,19 @@ public class AwsController {
 //		model.addAttribute("stateTransitionMsg",resultMap.get("stateTransitionMsg"));
 		return "main";
 	}
+	
+	@RequestMapping("/logEc2")
+	public String logEc2(Model model, @RequestParam("instance_id") String instance_id) {
+		logger.debug("instance_id [{}]", instance_id);
+		Map<String, Object> resultMap = awsService.logEC2(instance_id);
+		model.addAttribute("instance_id", instance_id);
+		
+		/**
+		 * log.html 생성, 로그 데이터 전달 
+		 */
+
+		return "log";
+	}
 	@RequestMapping("/monitoringList")
 	public String monitoringList(Model model, @RequestParam("instance_id") String instance_id) {
 		logger.debug("instance_id [{}]", instance_id);
