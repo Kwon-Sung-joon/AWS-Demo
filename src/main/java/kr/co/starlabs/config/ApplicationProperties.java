@@ -25,13 +25,23 @@ public class ApplicationProperties {
 		private String secureGroups;
 		private String accessKeyName;
 		private Date startTime;
-		
+		private Date stopTime;
+
 		public Date getStartTime() {
 			return startTime;
 		}
 
 		public void setStartTime(Date startTime) {
 			this.startTime = startTime;
+		}
+
+		
+		public Date getStopTime() {
+			return stopTime;
+		}
+
+		public void setStopTime(Date stopTime) {
+			this.stopTime = stopTime;
 		}
 
 		public String getAccessKeyName() {

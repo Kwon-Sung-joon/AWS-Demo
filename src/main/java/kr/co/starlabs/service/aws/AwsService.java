@@ -48,6 +48,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import com.amazonaws.services.ec2.model.StartInstancesRequest;
 import com.amazonaws.services.ec2.model.StopInstancesRequest;
+import com.amazonaws.services.ec2.model.StopInstancesResult;
 import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.ec2.model.Reservation;
 import com.amazonaws.services.ec2.model.InstanceType;
@@ -337,13 +338,30 @@ public class AwsService {
 		}
 
 		StopInstancesRequest request = new StopInstancesRequest().withInstanceIds(instance_id);
-
-		ec2.stopInstances(request);
+		
+		ec2.stopInstances(request);		
+		
+		
+		//stopping이 아닌, stopped의 시간
+		Date origin = null;
+		
+		while(ec2.stopInstances(request).getStoppingInstances().get(0).getCurrentState().getCode() != 80) {
+		
+			Date stopTime = new Date();
+			//인스턴스가 완전히 중지한 시간을 구함
+			origin = stopTime;
+		}
+		if(origin != null) {
+			applicationProperties.getAws().setStopTime(origin);
+		}
 		System.out.printf("Successfully stop instance %s", instance_id);
-
+		
+		
 		Map<String, Object> resultMap = new HashMap<>();
 		resultMap.put("instance_id", instance_id);
+		
 		logger.debug("instance_id [{}]", instance_id);
+		
 
 		return resultMap;
 	}
@@ -413,7 +431,10 @@ public class AwsService {
 					resultMap.put("monitoring_state", instance.getMonitoring().getState());
 					resultMap.put("launchTime", instance.getLaunchTime());
 					resultMap.put("public_DNS", instance.getPublicDnsName());
-
+					resultMap.put("stateTransition",instance.getStateTransitionReason());
+					resultMap.put("stopTime",applicationProperties.getAws().getStopTime());
+					
+					
 					// 모니터링을 위해 런티차임 저장
 					applicationProperties.getAws().setStartTime(instance.getLaunchTime());
 
