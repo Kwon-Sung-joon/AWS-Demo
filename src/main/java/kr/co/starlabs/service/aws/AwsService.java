@@ -3,8 +3,6 @@ package kr.co.starlabs.service.aws;
 import java.util.HashMap;
 
 import java.util.Map;
-import java.util.UUID;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,13 +41,14 @@ import com.amazonaws.services.identitymanagement.model.AttachedPolicy;
 import com.amazonaws.services.identitymanagement.model.ListAttachedUserPoliciesRequest;
 import com.amazonaws.services.identitymanagement.model.ListAttachedUserPoliciesResult;
 
+import com.amazonaws.services.logs.model.ResourceAlreadyExistsException;
+
 import java.util.Date;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import com.amazonaws.services.ec2.model.StartInstancesRequest;
 import com.amazonaws.services.ec2.model.StopInstancesRequest;
-import com.amazonaws.services.ec2.model.StopInstancesResult;
 import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.ec2.model.Reservation;
 import com.amazonaws.services.ec2.model.InstanceType;
@@ -60,14 +59,8 @@ import com.amazonaws.services.ec2.model.DescribeInstancesResult;
 import com.amazonaws.services.ec2.model.Tag;
 import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
 import com.amazonaws.services.ec2.model.CreateTagsRequest;
-import com.amazonaws.services.ec2.model.MonitorInstancesRequest;
-import com.amazonaws.services.ec2.model.Monitoring;
-
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.cloudwatchevents.CloudWatchEventsClient;
-import software.amazon.awssdk.services.cloudwatchevents.model.PutEventsRequest;
-import software.amazon.awssdk.services.cloudwatchevents.model.PutEventsRequestEntry;
-import software.amazon.awssdk.services.cloudwatchevents.model.PutEventsResponse;
 import software.amazon.awssdk.services.cloudwatchevents.model.PutRuleRequest;
 import software.amazon.awssdk.services.cloudwatchevents.model.PutRuleResponse;
 import software.amazon.awssdk.services.cloudwatchevents.model.PutTargetsRequest;
@@ -75,9 +68,12 @@ import software.amazon.awssdk.services.cloudwatchevents.model.PutTargetsResponse
 import software.amazon.awssdk.services.cloudwatchevents.model.RuleState;
 import software.amazon.awssdk.services.cloudwatchevents.model.Target;
 import software.amazon.awssdk.services.cloudwatchlogs.CloudWatchLogsClient;
+import software.amazon.awssdk.services.cloudwatchlogs.model.CreateLogGroupRequest;
+import software.amazon.awssdk.services.cloudwatchlogs.model.CreateLogGroupResponse;
+import software.amazon.awssdk.services.cloudwatchlogs.model.DescribeLogGroupsResponse;
+import software.amazon.awssdk.services.cloudwatchlogs.model.FilterLogEventsRequest;
 import software.amazon.awssdk.services.cloudwatchlogs.model.GetLogEventsRequest;
 import kr.co.starlabs.config.ApplicationProperties;
-import kr.co.starlabs.controller.aws.AwsController;
 
 /**
  * 
@@ -355,18 +351,6 @@ public class AwsService {
 
 		ec2.stopInstances(request);
 
-		// stopping이 아닌, stopped의 시간
-		Date origin = null;
-
-		while (ec2.stopInstances(request).getStoppingInstances().get(0).getCurrentState().getCode() != 80) {
-
-			Date stopTime = new Date();
-			// 인스턴스가 완전히 중지한 시간을 구함
-			origin = stopTime;
-		}
-		if (origin != null) {
-			applicationProperties.getAws().setStopTime(origin);
-		}
 		System.out.printf("Successfully stop instance %s", instance_id);
 
 		Map<String, Object> resultMap = new HashMap<>();
@@ -443,7 +427,6 @@ public class AwsService {
 					resultMap.put("launchTime", instance.getLaunchTime());
 					resultMap.put("public_DNS", instance.getPublicDnsName());
 					resultMap.put("stateTransition", instance.getStateTransitionReason());
-					resultMap.put("stopTime", applicationProperties.getAws().getStopTime());
 
 					// 모니터링을 위해 런티차임 저장
 					applicationProperties.getAws().setStartTime(instance.getLaunchTime());
@@ -465,16 +448,73 @@ public class AwsService {
 
 	}
 
+	
+	/**
+	 * 현재 확인할 수 있는 지표 목록 출력
+	 * @param instance_id
+	 * @return
+	 */
+	public ArrayList<Object> monitoringList(String instance_id) {
+	
+		ArrayList<Object> resultList = new ArrayList<>();
+		int i = 0;
+	
+		BasicAWSCredentials awsCreds = new BasicAWSCredentials(applicationProperties.getAws().getAccessKeyId(),
+				applicationProperties.getAws().getAccessKeySecret());
+	
+		final AmazonCloudWatch cw = AmazonCloudWatchClientBuilder.standard()
+				.withRegion(applicationProperties.getAws().getRegion())
+				.withCredentials(new AWSStaticCredentialsProvider(awsCreds)).build();
+	
+		System.out.println("Successfully put CloudWatch event");
+	
+		//현재 선택한 인스턴스로 필터링
+		DimensionFilter dimensions = new DimensionFilter();
+		dimensions.setName("InstanceId");
+		dimensions.setValue(instance_id);
+		
+		//해당 인스턴스의 확인할 수 있는 지표명 리스트
+		ListMetricsRequest requestMetricLst = new ListMetricsRequest().withNamespace("AWS/EC2")
+				.withDimensions(dimensions);
+		boolean flag = false;
+		while (!flag) {
+			ListMetricsResult response = cw.listMetrics(requestMetricLst);
+	
+			for (Metric metric : response.getMetrics()) {
+	
+				Map<String, Object> resultMap = new HashMap<>();
+				resultMap.put("metricName", metric.getMetricName());
+				resultList.add(i, resultMap);
+				i++;
+			}
+			requestMetricLst.setNextToken(response.getNextToken());
+	
+			if (response.getNextToken() == null) {
+				flag = true;
+			}
+		}
+		return resultList;
+	}
+
+	
+	/**
+	 * 선택한 지표명으로 해당 인스턴스의 지표 정보 출력
+	 * @param instance_id
+	 * @param metricName
+	 * @return
+	 */
 	public ArrayList<Object> monitoringDesc(String instance_id, String metricName) {
 
 		ArrayList<Object> resultList = new ArrayList<>();
 
+		//함수를 호출했을 때의 시간을 endTime으로, startTime( = 인스턴스 시작시간) 부터 현재 시간까지의 정보 
 		Date endTime = new Date();
 		// 지표 데이터를 가져올 간격( 기본값은 최소 5분, 세부 모니터링 활성화 시 1분 까지 가능)
 		Integer integer = new Integer(300);
 
 		BasicAWSCredentials awsCreds = new BasicAWSCredentials(applicationProperties.getAws().getAccessKeyId(),
 				applicationProperties.getAws().getAccessKeySecret());
+		
 		final AmazonCloudWatch cw = AmazonCloudWatchClientBuilder.standard()
 				.withRegion(applicationProperties.getAws().getRegion())
 				.withCredentials(new AWSStaticCredentialsProvider(awsCreds)).build();
@@ -487,10 +527,13 @@ public class AwsService {
 		GetMetricDataRequest md = new GetMetricDataRequest().withEndTime(endTime)
 				.withStartTime(applicationProperties.getAws().getStartTime()).withMetricDataQueries();
 
+		//해당 지표를 가져옴
 		Metric metric = new Metric().withNamespace("AWS/EC2").withDimensions(filter).withMetricName(metricName);
 
+		//해당 지표의 값을 가죠온다. 
 		MetricStat metricStat = new MetricStat().withMetric(metric).withPeriod(integer).withStat("Average");
 
+		//id는 임의 값 
 		MetricDataQuery metricDataQuery = new MetricDataQuery().withId("m1").withMetricStat(metricStat);
 		md.withMetricDataQueries(metricDataQuery);
 
@@ -498,6 +541,7 @@ public class AwsService {
 
 		// System.out.println(rms.getMetricDataResults());
 
+		//해당 시간과 해당 값을 넘겨줌
 		for (int i = 0; i < rms.getMetricDataResults().get(0).getTimestamps().size(); i++) {
 			Map<String, Object> resultMap = new HashMap<>();
 			resultMap.put("values", rms.getMetricDataResults().get(0).getValues()
@@ -511,97 +555,101 @@ public class AwsService {
 		return resultList;
 	}
 
-	public ArrayList<Object> monitoringList(String instance_id) {
-
+	public ArrayList<Object> logEC2(String instance_id) {
 		ArrayList<Object> resultList = new ArrayList<>();
-		int i = 0;
 
-		BasicAWSCredentials awsCreds = new BasicAWSCredentials(applicationProperties.getAws().getAccessKeyId(),
-				applicationProperties.getAws().getAccessKeySecret());
-
-		final AmazonCloudWatch cw = AmazonCloudWatchClientBuilder.standard()
-				.withRegion(applicationProperties.getAws().getRegion())
-				.withCredentials(new AWSStaticCredentialsProvider(awsCreds)).build();
-
-		System.out.println("Successfully put CloudWatch event");
-
-		DimensionFilter dimensions = new DimensionFilter();
-		dimensions.setName("InstanceId");
-		dimensions.setValue(instance_id);
-		ListMetricsRequest requestMetricLst = new ListMetricsRequest().withNamespace("AWS/EC2")
-				.withDimensions(dimensions);
-		boolean flag = false;
-		while (!flag) {
-			ListMetricsResult response = cw.listMetrics(requestMetricLst);
-
-			for (Metric metric : response.getMetrics()) {
-
-				Map<String, Object> resultMap = new HashMap<>();
-				resultMap.put("metricName", metric.getMetricName());
-				resultList.add(i, resultMap);
-				i++;
-			}
-			requestMetricLst.setNextToken(response.getNextToken());
-
-			if (response.getNextToken() == null) {
-				flag = true;
-			}
-		}
-		return resultList;
-	}
-
-	public Map<String, Object> logEC2(String instance_id) {
 		// CloudWatch 규칙생성 및 로그그룹 연결
-		// IAM 유저에 CloudWatchLogsFullAccess, CloudWatchEventsFullAccess 정책 추가 필요
+		// 새 IAM 유저에 CloudWatchLogsFullAccess, CloudWatchEventsFullAccess 정책 추가 필요
+		// 방법 1. 유저 생성시 처음부터 정책 부여
+		// 방법 2. log 출력을 원할 시 정책 부여 혹은 새 유저 생성
 		CloudWatchEventsClient cwe = CloudWatchEventsClient.builder().build();
+		// 기본 루트 클라이언트로 생성하므로 수정 필요
+		CloudWatchLogsClient cwl = CloudWatchLogsClient.builder().region(Region.AP_NORTHEAST_2).build();
 
-		// 이벤트 규칙 이름 생성
-		String rule_name = "ec2_state_rule_" + UUID.randomUUID().toString();
+		
+		String rule_name = instance_id;
+		// 로그그룹 생성 => 인스턴스 id로 생성
+		String logGroupName = "/aws/events/" + instance_id;
+		String logArn = "";
 
-		// 이벤트 패턴 JSON 형식
 		// 매개변수 instance_id 를 eventPattern 에 넣기
+		// state를 모두 확인할지, 받아서 확인할지 체크
 		String eventPattern = "{\r\n" + "  \"source\": [\r\n" + "    \"aws.ec2\"\r\n" + "  ],\r\n"
 				+ "  \"detail-type\": [\r\n" + "    \"EC2 Instance State-change Notification\"\r\n" + "  ],\r\n"
-				+ "  \"detail\": {\r\n" + "    \"state\": [\r\n" + "      \"stopped\",\r\n" + "      \"running\",\r\n"
-				+ "      \"terminated\"\r\n" + "    ],\r\n" + "    \"instance-id\": [\r\n"
-				+ "      \"i-07b8ff5494d0ff5e7\"\r\n" + "    ]\r\n" + "  }\r\n" + "}";
+				+ "  \"detail\": {\r\n" + "    \"state\": [\r\n" + "      \"running\",\r\n"
+				+ "      \"terminated\",\r\n" + "      \"stopped\"\r\n" + "    ],\r\n" + "    \"instance-id\": [\r\n"
+				+ "      \"" + instance_id + "\"\r\n" + "    ]\r\n" + "  }\r\n" + "}";
 
-		PutRuleRequest ruleRequest = PutRuleRequest.builder().name(rule_name).state(RuleState.ENABLED)
-				.eventPattern(eventPattern).build();
+		try {
+			PutRuleRequest ruleRequest = PutRuleRequest.builder().name(rule_name).state(RuleState.ENABLED)
+					.eventPattern(eventPattern).build();
 
-		PutRuleResponse ruleResponse = cwe.putRule(ruleRequest);
+			PutRuleResponse ruleResponse = cwe.putRule(ruleRequest);
+			System.out.println(
+					"Successfully created CloudWatch events rule " + rule_name + " with arn " + ruleResponse.ruleArn());
 
-		System.out.printf("Successfully created CloudWatch events rule %s with arn %s", rule_name,
-				ruleResponse.ruleArn());
+		} catch (ResourceAlreadyExistsException expected) {
+			// 규칙이 이미 있다면 추가할 필요 없음
+			System.out.println("Log Events Rule already exists");
+			// Ignored or expected.
+		}
+
+
+		try {
+
+			CreateLogGroupRequest logRequest = CreateLogGroupRequest.builder().logGroupName(logGroupName).build();
+			CreateLogGroupResponse logResponse = cwl.createLogGroup(logRequest);
+
+			System.out.println("Successfully create CloudWatch log Groups " + logResponse);
+
+		} catch (software.amazon.awssdk.services.cloudwatchlogs.model.ResourceAlreadyExistsException expected) {
+			// 로그 그룹이 있을 시에는 생성할 필요 없으므로 예외처리
+			System.out.println("Log Events already exists");
+			// Ignored or expected.
+		} finally {
+
+			// 로그 데이터를 가져올 때 arn이 필요하므로 arn 가져오기
+			DescribeLogGroupsResponse descLogs = cwl.describeLogGroups();
+			for (int i = 0; i < descLogs.logGroups().size(); i++) {
+				if (descLogs.logGroups().get(i).logGroupName().equalsIgnoreCase(logGroupName)) {
+					logArn = descLogs.logGroups().get(i).arn();
+
+					break;
+				}
+			}
+		}
 
 		// arn = 로그그룹 arn id= ??
-		Target target = Target.builder().arn("arn:aws:logs:ap-northeast-2:672956273056:log-group:/aws/events/logs:*")
-				.id("asd").build();
 
-		// 앞서 생성한 규칙으로 타겟 생성
-		PutTargetsRequest request1 = PutTargetsRequest.builder().targets(target).rule(rule_name).build();
+		try {
+			// logArn은 위에서 가져온 로그 그룹의 arn
+			Target target = Target.builder().arn(logArn).id(instance_id).build();
 
-		PutTargetsResponse response = cwe.putTargets(request1);
-		// snippet-end:[cloudwatch.java2.put_targets.main]
+			// 앞서 생성한 규칙으로 타겟(로그그룹)연결
+			PutTargetsRequest targetRequest = PutTargetsRequest.builder().targets(target).rule(rule_name).build();
+			PutTargetsResponse targetResponse = cwe.putTargets(targetRequest);
 
-		System.out.println("Successfully created CloudWatch events target for rule " + rule_name);
+			// 로그그룹 내의 모든 로그 스트림의 정보
+			FilterLogEventsRequest filterLogEventsRequest = FilterLogEventsRequest.builder().logGroupName(logGroupName)
+					.build();
 
-		CloudWatchLogsClient cloudWatchLogsClient = CloudWatchLogsClient.builder().region(Region.AP_NORTHEAST_2)
-				.build();
-		// 로그 이벤트 가져오기 ==> 데이터 확인
-		GetLogEventsRequest getLogEventsRequest = GetLogEventsRequest.builder().logGroupName("/aws/events/logs")
-				.logStreamName("asd").startFromHead(true).build();
+			int logLimits = cwl.filterLogEvents(filterLogEventsRequest).events().size();
+			for (int i = 0; i < logLimits; i++) { // Prints the messages to the console
 
-		int logLimit = cloudWatchLogsClient.getLogEvents(getLogEventsRequest).events().size();
-		for (int c = 0; c < logLimit; c++) {
-			// Prints the messages to the console
-			System.out.println(cloudWatchLogsClient.getLogEvents(getLogEventsRequest).events().get(c).message());
+				Map<String, Object> resultMap = new HashMap<>();
+				resultMap.put("log", cwl.filterLogEvents(filterLogEventsRequest).events().get(i).message());
+				resultList.add(i, resultMap);
+				// Date time = new
+				// Date(cwl.filterLogEvents(filterLogEventsRequest).events().get(c).timestamp());
+
+			}
+
+		} catch (Exception e) {
+			System.out.println(e);
 		}
-		System.out.println("Successfully got CloudWatch log events!");
-
 		/**
-		 * 로그 데이터 리턴
+		 * 위에서 처리한 로그 데이터 리턴
 		 */
-		return null;
+		return resultList;
 	}
 }

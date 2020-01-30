@@ -89,7 +89,7 @@ public class AwsController {
 		logger.debug("instance_id [{}]", instance_id);
 		Map<String, Object> resultMap = awsService.startEC2(instance_id);
 		model.addAttribute("instance_id", resultMap.get("instance_id"));
-		model.addAttribute("launchTime","");
+		model.addAttribute("launchTime", "");
 
 		return "main";
 	}
@@ -105,8 +105,7 @@ public class AwsController {
 		logger.debug("instance_id [{}]", instance_id);
 		Map<String, Object> resultMap = awsService.stopEC2(instance_id);
 		model.addAttribute("instance_id", resultMap.get("instance_id"));
-		//model.addAttribute("launchTime","");
-		model.addAttribute("stopTime",resultMap.get("stopTime"));
+
 		return "main";
 	}
 
@@ -121,7 +120,7 @@ public class AwsController {
 		logger.debug("instance_id [{}]", instance_id);
 		Map<String, Object> resultMap = awsService.terminateEC2(instance_id);
 		model.addAttribute("instance_id", resultMap.get("instance_id"));
-		model.addAttribute("launchTime","");
+		model.addAttribute("launchTime", "");
 		return "main";
 	}
 
@@ -143,47 +142,46 @@ public class AwsController {
 		model.addAttribute("monitoring_state", resultMap.get("monitoring_state"));
 		model.addAttribute("launchTime", resultMap.get("launchTime"));
 		model.addAttribute("public_DNS", resultMap.get("public_DNS"));
-		model.addAttribute("stopTime",resultMap.get("stopTime"));
-		model.addAttribute("stateTransition",resultMap.get("stateTransition"));
+		model.addAttribute("stateTransition", resultMap.get("stateTransition"));
 //		model.addAttribute("stateTransitionMsg",resultMap.get("stateTransitionMsg"));
 		return "main";
 	}
-	
+
 	@RequestMapping("/logEc2")
 	public String logEc2(Model model, @RequestParam("instance_id") String instance_id) {
 		logger.debug("instance_id [{}]", instance_id);
-		Map<String, Object> resultMap = awsService.logEC2(instance_id);
+		ArrayList<Object> resultList = awsService.logEC2(instance_id);
+
+		model.addAttribute("logs", resultList);
 		model.addAttribute("instance_id", instance_id);
-		
 		/**
-		 * log.html 생성, 로그 데이터 전달 
+		 * log.html 생성, 로그 데이터 전달
 		 */
 
 		return "log";
 	}
+
 	@RequestMapping("/monitoringList")
 	public String monitoringList(Model model, @RequestParam("instance_id") String instance_id) {
 		logger.debug("instance_id [{}]", instance_id);
 		ArrayList<Object> resultList = awsService.monitoringList(instance_id);
 		model.addAttribute("metricNames", resultList);
 		model.addAttribute("instance_id", instance_id);
-		
-		
+
 		return "monitoringList";
 	}
-	
+
 	@RequestMapping("/monitoringDesc")
-	public String monitoringDesc(Model model,@RequestParam("instance_id") String instance_id, @RequestParam("metricName") String metricName) {
+	public String monitoringDesc(Model model, @RequestParam("instance_id") String instance_id,
+			@RequestParam("metricName") String metricName) {
 		logger.debug("monitoring params [{}]", instance_id, metricName);
 		ArrayList<Object> resultList = awsService.monitoringDesc(instance_id, metricName);
 
 		model.addAttribute("monitoring", resultList);
-		model.addAttribute("metricName",metricName);
-		model.addAttribute("instance_id",instance_id);
-		
+		model.addAttribute("metricName", metricName);
+		model.addAttribute("instance_id", instance_id);
+
 		return "monitoringDesc";
 	}
-	
-
 
 }
