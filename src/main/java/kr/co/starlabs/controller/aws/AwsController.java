@@ -143,7 +143,7 @@ public class AwsController {
 		model.addAttribute("launchTime", resultMap.get("launchTime"));
 		model.addAttribute("public_DNS", resultMap.get("public_DNS"));
 		model.addAttribute("stateTransition", resultMap.get("stateTransition"));
-//		model.addAttribute("stateTransitionMsg",resultMap.get("stateTransitionMsg"));
+
 		return "main";
 	}
 
