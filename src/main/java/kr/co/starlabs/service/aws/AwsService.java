@@ -448,47 +448,47 @@ public class AwsService {
 
 	}
 
-	
 	/**
 	 * 현재 확인할 수 있는 지표 목록 출력
+	 * 
 	 * @param instance_id
 	 * @return
 	 */
 	public ArrayList<Object> monitoringList(String instance_id) {
-	
+
 		ArrayList<Object> resultList = new ArrayList<>();
 		int i = 0;
-	
+
 		BasicAWSCredentials awsCreds = new BasicAWSCredentials(applicationProperties.getAws().getAccessKeyId(),
 				applicationProperties.getAws().getAccessKeySecret());
-	
+
 		final AmazonCloudWatch cw = AmazonCloudWatchClientBuilder.standard()
 				.withRegion(applicationProperties.getAws().getRegion())
 				.withCredentials(new AWSStaticCredentialsProvider(awsCreds)).build();
-	
+
 		System.out.println("Successfully put CloudWatch event");
-	
-		//현재 선택한 인스턴스로 필터링
+
+		// 현재 선택한 인스턴스로 필터링
 		DimensionFilter dimensions = new DimensionFilter();
 		dimensions.setName("InstanceId");
 		dimensions.setValue(instance_id);
-		
-		//해당 인스턴스의 확인할 수 있는 지표명 리스트
+
+		// 해당 인스턴스의 확인할 수 있는 지표명 리스트
 		ListMetricsRequest requestMetricLst = new ListMetricsRequest().withNamespace("AWS/EC2")
 				.withDimensions(dimensions);
 		boolean flag = false;
 		while (!flag) {
 			ListMetricsResult response = cw.listMetrics(requestMetricLst);
-	
+
 			for (Metric metric : response.getMetrics()) {
-	
+
 				Map<String, Object> resultMap = new HashMap<>();
 				resultMap.put("metricName", metric.getMetricName());
 				resultList.add(i, resultMap);
 				i++;
 			}
 			requestMetricLst.setNextToken(response.getNextToken());
-	
+
 			if (response.getNextToken() == null) {
 				flag = true;
 			}
@@ -496,9 +496,9 @@ public class AwsService {
 		return resultList;
 	}
 
-	
 	/**
 	 * 선택한 지표명으로 해당 인스턴스의 지표 정보 출력
+	 * 
 	 * @param instance_id
 	 * @param metricName
 	 * @return
@@ -507,14 +507,14 @@ public class AwsService {
 
 		ArrayList<Object> resultList = new ArrayList<>();
 
-		//함수를 호출했을 때의 시간을 endTime으로, startTime( = 인스턴스 시작시간) 부터 현재 시간까지의 정보 
+		// 함수를 호출했을 때의 시간을 endTime으로, startTime( = 인스턴스 시작시간) 부터 현재 시간까지의 정보
 		Date endTime = new Date();
 		// 지표 데이터를 가져올 간격( 기본값은 최소 5분, 세부 모니터링 활성화 시 1분 까지 가능)
 		Integer integer = new Integer(300);
 
 		BasicAWSCredentials awsCreds = new BasicAWSCredentials(applicationProperties.getAws().getAccessKeyId(),
 				applicationProperties.getAws().getAccessKeySecret());
-		
+
 		final AmazonCloudWatch cw = AmazonCloudWatchClientBuilder.standard()
 				.withRegion(applicationProperties.getAws().getRegion())
 				.withCredentials(new AWSStaticCredentialsProvider(awsCreds)).build();
@@ -527,13 +527,13 @@ public class AwsService {
 		GetMetricDataRequest md = new GetMetricDataRequest().withEndTime(endTime)
 				.withStartTime(applicationProperties.getAws().getStartTime()).withMetricDataQueries();
 
-		//해당 지표를 가져옴
+		// 해당 지표를 가져옴
 		Metric metric = new Metric().withNamespace("AWS/EC2").withDimensions(filter).withMetricName(metricName);
 
-		//해당 지표의 값을 가죠온다. 
+		// 해당 지표의 값을 가죠온다.
 		MetricStat metricStat = new MetricStat().withMetric(metric).withPeriod(integer).withStat("Average");
 
-		//id는 임의 값 
+		// id는 임의 값
 		MetricDataQuery metricDataQuery = new MetricDataQuery().withId("m1").withMetricStat(metricStat);
 		md.withMetricDataQueries(metricDataQuery);
 
@@ -541,7 +541,7 @@ public class AwsService {
 
 		// System.out.println(rms.getMetricDataResults());
 
-		//해당 시간과 해당 값을 넘겨줌
+		// 해당 시간과 해당 값을 넘겨줌
 		for (int i = 0; i < rms.getMetricDataResults().get(0).getTimestamps().size(); i++) {
 			Map<String, Object> resultMap = new HashMap<>();
 			resultMap.put("values", rms.getMetricDataResults().get(0).getValues()
@@ -562,11 +562,11 @@ public class AwsService {
 		// 새 IAM 유저에 CloudWatchLogsFullAccess, CloudWatchEventsFullAccess 정책 추가 필요
 		// 방법 1. 유저 생성시 처음부터 정책 부여
 		// 방법 2. log 출력을 원할 시 정책 부여 혹은 새 유저 생성
+
 		CloudWatchEventsClient cwe = CloudWatchEventsClient.builder().build();
 		// 기본 루트 클라이언트로 생성하므로 수정 필요
 		CloudWatchLogsClient cwl = CloudWatchLogsClient.builder().region(Region.AP_NORTHEAST_2).build();
 
-		
 		String rule_name = instance_id;
 		// 로그그룹 생성 => 인스턴스 id로 생성
 		String logGroupName = "/aws/events/" + instance_id;
@@ -576,9 +576,8 @@ public class AwsService {
 		// state를 모두 확인할지, 받아서 확인할지 체크
 		String eventPattern = "{\r\n" + "  \"source\": [\r\n" + "    \"aws.ec2\"\r\n" + "  ],\r\n"
 				+ "  \"detail-type\": [\r\n" + "    \"EC2 Instance State-change Notification\"\r\n" + "  ],\r\n"
-				+ "  \"detail\": {\r\n" + "    \"state\": [\r\n" + "      \"running\",\r\n"
-				+ "      \"terminated\",\r\n" + "      \"stopped\"\r\n" + "    ],\r\n" + "    \"instance-id\": [\r\n"
-				+ "      \"" + instance_id + "\"\r\n" + "    ]\r\n" + "  }\r\n" + "}";
+				+ "  \"detail\": {\r\n" + "    \"state\": [\r\n" + "      \"stopped\"\r\n" + "    ],\r\n"
+				+ "    \"instance-id\": [\r\n" + "      \"" + instance_id + "\"\r\n" + "    ]\r\n" + "  }\r\n" + "}";
 
 		try {
 			PutRuleRequest ruleRequest = PutRuleRequest.builder().name(rule_name).state(RuleState.ENABLED)
@@ -593,7 +592,6 @@ public class AwsService {
 			System.out.println("Log Events Rule already exists");
 			// Ignored or expected.
 		}
-
 
 		try {
 
@@ -636,11 +634,15 @@ public class AwsService {
 			int logLimits = cwl.filterLogEvents(filterLogEventsRequest).events().size();
 			for (int i = 0; i < logLimits; i++) { // Prints the messages to the console
 
+				System.out.println(cwl.filterLogEvents(filterLogEventsRequest).events().get(i).message());
+
+				Date time = new Date(cwl.filterLogEvents(filterLogEventsRequest).events().get(i).timestamp());
+
 				Map<String, Object> resultMap = new HashMap<>();
-				resultMap.put("log", cwl.filterLogEvents(filterLogEventsRequest).events().get(i).message());
+
+				resultMap.put("log", time);
+
 				resultList.add(i, resultMap);
-				// Date time = new
-				// Date(cwl.filterLogEvents(filterLogEventsRequest).events().get(c).timestamp());
 
 			}
 
