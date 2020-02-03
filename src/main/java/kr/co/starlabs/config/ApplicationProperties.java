@@ -25,6 +25,15 @@ public class ApplicationProperties {
 		private String secureGroups;
 		private String accessKeyName;
 		private Date startTime;
+		private String logArn;
+
+		public String getLogArn() {
+			return logArn;
+		}
+
+		public void setLogArn(String logArn) {
+			this.logArn = logArn;
+		}
 
 		public Date getStartTime() {
 			return startTime;

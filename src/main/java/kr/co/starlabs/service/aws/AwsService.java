@@ -3,8 +3,6 @@ package kr.co.starlabs.service.aws;
 import java.util.HashMap;
 
 import java.util.Map;
-
-import org.apache.http.client.CredentialsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -146,6 +144,7 @@ public class AwsService {
 		AttachUserPolicyRequest attach_request = new AttachUserPolicyRequest().withUserName(username)
 				.withPolicyArn(policy_arn);
 
+		// 정책 2개 추가 데모.
 		AttachUserPolicyRequest attach_request2 = new AttachUserPolicyRequest().withUserName(username)
 				.withPolicyArn("arn:aws:iam::aws:policy/CloudWatchLogsFullAccess");
 
@@ -222,7 +221,7 @@ public class AwsService {
 	 * 
 	 * @return
 	 */
-	public AmazonEC2 client() {
+	public AmazonEC2 ec2Client() {
 
 		String accessKeyId = applicationProperties.getAws().getAccessKeyId();
 		String accessKeySecret = applicationProperties.getAws().getAccessKeySecret();
@@ -246,7 +245,7 @@ public class AwsService {
 		ArrayList<Object> resultList = new ArrayList<>();
 		int i = 0;
 
-		AmazonEC2 ec2 = client();
+		AmazonEC2 ec2 = ec2Client();
 
 		DescribeInstancesRequest request = new DescribeInstancesRequest();
 		boolean done = false;
@@ -290,7 +289,7 @@ public class AwsService {
 
 		String ami_id = applicationProperties.getAws().getAmi_id();
 
-		AmazonEC2 ec2 = client();
+		AmazonEC2 ec2 = ec2Client();
 		String secureGroups = applicationProperties.getAws().getSecureGroups();
 		String accessKeyName = applicationProperties.getAws().getAccessKeyName();
 		// test 키페어는 인스턴스 연결에 사용할 키페어로 미리 생성해두어야 한다.
@@ -312,6 +311,74 @@ public class AwsService {
 		resultMap.put("instance_id", reservation_id);
 		logger.debug("instance_id [{}]", reservation_id);
 
+		// CloudWatch 규칙생성 및 로그그룹 연결
+
+		String accessKeyId = applicationProperties.getAws().getAccessKeyId();
+		String accessKeySecret = applicationProperties.getAws().getAccessKeySecret();
+
+		AwsBasicCredentials awsCreds = AwsBasicCredentials.create(accessKeyId, accessKeySecret);
+
+		CloudWatchEventsClient cwe = CloudWatchEventsClient.builder()
+				.credentialsProvider(StaticCredentialsProvider.create(awsCreds)).build();
+		// 기본 루트 클라이언트로 생성하므로 수정 필요
+		CloudWatchLogsClient cwl = CloudWatchLogsClient.builder()
+				.credentialsProvider(StaticCredentialsProvider.create(awsCreds)).region(Region.AP_NORTHEAST_2).build();
+
+		String rule_name = reservation_id;
+		// 로그그룹 생성 => 인스턴스 id로 생성
+		String logGroupName = "/aws/events/" + reservation_id;
+		String logArn = "";
+
+		// 매개변수 instance_id 를 eventPattern 에 넣기
+		// state를 모두 확인할지, 받아서 확인할지 체크
+		String eventPattern = "{\r\n" + "  \"source\": [\r\n" + "    \"aws.ec2\"\r\n" + "  ],\r\n"
+				+ "  \"detail-type\": [\r\n" + "    \"EC2 Instance State-change Notification\"\r\n" + "  ],\r\n"
+				+ "  \"detail\": {\r\n" + "    \"state\": [\r\n" + "      \"stopped\"\r\n" + "    ],\r\n"
+				+ "    \"instance-id\": [\r\n" + "      \"" + reservation_id + "\"\r\n" + "    ]\r\n" + "  }\r\n" + "}";
+
+		try {
+			PutRuleRequest ruleRequest = PutRuleRequest.builder().name(rule_name).state(RuleState.ENABLED)
+					.eventPattern(eventPattern).build();
+
+			PutRuleResponse ruleResponse = cwe.putRule(ruleRequest);
+			System.out.println(
+					"Successfully created CloudWatch events rule " + rule_name + " with arn " + ruleResponse.ruleArn());
+
+		} catch (ResourceAlreadyExistsException expected) {
+			// 규칙이 이미 있다면 추가할 필요 없음
+			System.out.println("Log Events Rule already exists");
+			// Ignored or expected.
+		}
+
+		try {
+
+			CreateLogGroupRequest logRequest = CreateLogGroupRequest.builder().logGroupName(logGroupName).build();
+			CreateLogGroupResponse logResponse = cwl.createLogGroup(logRequest);
+
+			System.out.println("Successfully create CloudWatch log Groups " + logResponse);
+
+		} catch (software.amazon.awssdk.services.cloudwatchlogs.model.ResourceAlreadyExistsException expected) {
+			// 로그 그룹이 있을 시에는 생성할 필요 없으므로 예외처리
+			System.out.println("Log Events already exists");
+			// Ignored or expected.
+		} finally {
+
+			// 로그 데이터를 가져올 때 arn이 필요하므로 arn 가져오기
+			DescribeLogGroupsResponse descLogs = cwl.describeLogGroups();
+			for (int i = 0; i < descLogs.logGroups().size(); i++) {
+				if (descLogs.logGroups().get(i).logGroupName().equalsIgnoreCase(logGroupName)) {
+					logArn = descLogs.logGroups().get(i).arn();
+					applicationProperties.getAws().setLogArn(logArn);
+
+					break;
+				}
+			}
+		}
+		Target target = Target.builder().arn(applicationProperties.getAws().getLogArn()).id(reservation_id).build();
+		PutTargetsRequest targetRequest = PutTargetsRequest.builder().targets(target).rule(rule_name).build();
+		PutTargetsResponse targetResponse = cwe.putTargets(targetRequest);
+
+
 		return resultMap;
 	}
 
@@ -324,7 +391,7 @@ public class AwsService {
 	public Map<String, Object> startEC2(String instance_id) {
 		Map<String, Object> resultMap = new HashMap<>();
 
-		AmazonEC2 ec2 = client();
+		AmazonEC2 ec2 = ec2Client();
 
 		DryRunSupportedRequest<StartInstancesRequest> dry_request = () -> {
 			StartInstancesRequest request = new StartInstancesRequest().withInstanceIds(instance_id);
@@ -358,7 +425,7 @@ public class AwsService {
 	 */
 	public Map<String, Object> stopEC2(String instance_id) {
 
-		AmazonEC2 ec2 = client();
+		AmazonEC2 ec2 = ec2Client();
 		DryRunSupportedRequest<StopInstancesRequest> dry_request = () -> {
 			StopInstancesRequest request = new StopInstancesRequest().withInstanceIds(instance_id);
 
@@ -395,7 +462,7 @@ public class AwsService {
 	public Map<String, Object> terminateEC2(String instance_id) {
 		Map<String, Object> resultMap = new HashMap<>();
 
-		AmazonEC2 ec2 = client();
+		AmazonEC2 ec2 = ec2Client();
 
 		DryRunSupportedRequest<TerminateInstancesRequest> dry_request = () -> {
 			TerminateInstancesRequest request = new TerminateInstancesRequest().withInstanceIds(instance_id);
@@ -433,7 +500,7 @@ public class AwsService {
 
 		Map<String, Object> resultMap = new HashMap<>();
 
-		AmazonEC2 ec2 = client();
+		AmazonEC2 ec2 = ec2Client();
 
 		boolean done = false;
 		DescribeInstancesRequest request = new DescribeInstancesRequest();
@@ -583,8 +650,8 @@ public class AwsService {
 	public ArrayList<Object> logEC2(String instance_id) {
 		ArrayList<Object> resultList = new ArrayList<>();
 
-		// CloudWatch 규칙생성 및 로그그룹 연결
-
+		String rule_name = instance_id;
+		String logGroupName = "/aws/events/" + instance_id;
 		String accessKeyId = applicationProperties.getAws().getAccessKeyId();
 		String accessKeySecret = applicationProperties.getAws().getAccessKeySecret();
 
@@ -596,10 +663,7 @@ public class AwsService {
 		CloudWatchLogsClient cwl = CloudWatchLogsClient.builder()
 				.credentialsProvider(StaticCredentialsProvider.create(awsCreds)).region(Region.AP_NORTHEAST_2).build();
 
-		String rule_name = instance_id;
 		// 로그그룹 생성 => 인스턴스 id로 생성
-		String logGroupName = "/aws/events/" + instance_id;
-		String logArn = "";
 
 		// 매개변수 instance_id 를 eventPattern 에 넣기
 		// state를 모두 확인할지, 받아서 확인할지 체크
@@ -639,20 +703,17 @@ public class AwsService {
 			DescribeLogGroupsResponse descLogs = cwl.describeLogGroups();
 			for (int i = 0; i < descLogs.logGroups().size(); i++) {
 				if (descLogs.logGroups().get(i).logGroupName().equalsIgnoreCase(logGroupName)) {
-					logArn = descLogs.logGroups().get(i).arn();
-
+					applicationProperties.getAws().setLogArn(descLogs.logGroups().get(i).arn());
 					break;
 				}
 			}
 		}
 
 		// arn = 로그그룹 arn id= ??
-
 		try {
-			// logArn은 위에서 가져온 로그 그룹의 arn
-			Target target = Target.builder().arn(logArn).id(instance_id).build();
-
 			// 앞서 생성한 규칙으로 타겟(로그그룹)연결
+			// logArn은 위에서 가져온 로그 그룹의 arn
+			Target target = Target.builder().arn(applicationProperties.getAws().getLogArn()).id(instance_id).build();
 			PutTargetsRequest targetRequest = PutTargetsRequest.builder().targets(target).rule(rule_name).build();
 			PutTargetsResponse targetResponse = cwe.putTargets(targetRequest);
 
