@@ -11,7 +11,7 @@ spring:
 # ami_id은 생성 할 인스턴스의 기본값
 # secureGroups 생성할 인스턴스에 연결할 보안그룹
 # accessKeyName 생성핳 인스턴스에 연결할 떄 사용할 키페어 이름
-application:
+application: 
   aws:
     username : Users
     accessKeyId: "MyAccessKeyId"
