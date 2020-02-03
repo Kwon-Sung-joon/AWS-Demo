@@ -61,7 +61,6 @@
 		</dependency>
 
 
-<<<<<<< HEAD
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>bom</artifactId>
@@ -72,33 +71,17 @@
 
 		<!-- aws sdk for java bom (개별 모둘 지정) -->
 
-=======
-
-		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-api</artifactId>
-			<version>1.7.25</version>
-		</dependency>
-		
-		
->>>>>>> refs/heads/master
 		<!-- aws sdk iam -->
 		<dependency>
 			<groupId>com.amazonaws</groupId>
 			<artifactId>aws-java-sdk-iam</artifactId>
 			<version>1.11.707</version>
 		</dependency>
-<<<<<<< HEAD
-=======
-
-		<!-- aws sdk ec2 -->
->>>>>>> refs/heads/master
 		<dependency>
 			<groupId>com.amazonaws</groupId>
 			<artifactId>aws-java-sdk-ec2</artifactId>
 			<version>1.11.707</version>
 		</dependency>
-<<<<<<< HEAD
 		<dependency>
 			<groupId>com.amazonaws</groupId>
 			<artifactId>aws-java-sdk-cloudwatch</artifactId>
@@ -137,11 +120,6 @@
 
 		<!-- aws sdk ec2 -->
 
-=======
-
-
-		<!-- aws sdk ec2 -->
->>>>>>> refs/heads/master
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>ec2</artifactId>

@@ -1,10 +1,7 @@
 package kr.co.starlabs.service.aws;
 
 import java.util.HashMap;
-<<<<<<< HEAD
 
-=======
->>>>>>> refs/heads/master
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,7 +9,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
-<<<<<<< HEAD
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatchClientBuilder;
 import com.amazonaws.services.cloudwatch.model.Dimension;
@@ -24,8 +20,6 @@ import com.amazonaws.services.cloudwatch.model.ListMetricsResult;
 import com.amazonaws.services.cloudwatch.model.Metric;
 import com.amazonaws.services.cloudwatch.model.MetricDataQuery;
 import com.amazonaws.services.cloudwatch.model.MetricStat;
-=======
->>>>>>> refs/heads/master
 import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
 import com.amazonaws.services.ec2.model.DryRunResult;
@@ -65,7 +59,6 @@ import com.amazonaws.services.ec2.model.DescribeInstancesResult;
 import com.amazonaws.services.ec2.model.Tag;
 import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
 import com.amazonaws.services.ec2.model.CreateTagsRequest;
-<<<<<<< HEAD
 
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 //import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
@@ -86,8 +79,6 @@ import software.amazon.awssdk.services.cloudwatchlogs.model.CreateLogGroupReques
 import software.amazon.awssdk.services.cloudwatchlogs.model.CreateLogGroupResponse;
 import software.amazon.awssdk.services.cloudwatchlogs.model.DescribeLogGroupsResponse;
 import software.amazon.awssdk.services.cloudwatchlogs.model.FilterLogEventsRequest;
-=======
->>>>>>> refs/heads/master
 import kr.co.starlabs.config.ApplicationProperties;
 
 /**
@@ -114,12 +105,7 @@ public class AwsService {
 
 		Map<String, Object> resultMap = new HashMap<>();
 
-<<<<<<< HEAD
 		AmazonIdentityManagement iam = AmazonIdentityManagementClientBuilder.defaultClient();
-=======
-		final AmazonIdentityManagement iam = AmazonIdentityManagementClientBuilder.defaultClient();
-
->>>>>>> refs/heads/master
 		// IAM 유저 생성
 		CreateUserRequest requestCreateUser = new CreateUserRequest().withUserName(username);
 		CreateUserResult responseCreateUser = iam.createUser(requestCreateUser);
@@ -157,7 +143,6 @@ public class AwsService {
 
 		AttachUserPolicyRequest attach_request = new AttachUserPolicyRequest().withUserName(username)
 				.withPolicyArn(policy_arn);
-<<<<<<< HEAD
 
 		// 정책 2개 추가 데모.
 		AttachUserPolicyRequest attach_request2 = new AttachUserPolicyRequest().withUserName(username)
@@ -167,8 +152,6 @@ public class AwsService {
 				.withPolicyArn("arn:aws:iam::aws:policy/CloudWatchEventsFullAccess");
 
 		// Cloud Watch Logs, Events 정책 추가
-=======
->>>>>>> refs/heads/master
 
 		iam.attachUserPolicy(attach_request);
 		iam.attachUserPolicy(attach_request2);
@@ -204,7 +187,6 @@ public class AwsService {
 		DetachUserPolicyRequest requestDetachUserPolicy = new DetachUserPolicyRequest().withUserName(username)
 				.withPolicyArn(policy_arn);
 
-<<<<<<< HEAD
 		DetachUserPolicyRequest requestDetachUserPolicy2 = new DetachUserPolicyRequest().withUserName(username)
 				.withPolicyArn("arn:aws:iam::aws:policy/CloudWatchLogsFullAccess");
 
@@ -396,123 +378,6 @@ public class AwsService {
 		PutTargetsRequest targetRequest = PutTargetsRequest.builder().targets(target).rule(rule_name).build();
 		PutTargetsResponse targetResponse = cwe.putTargets(targetRequest);
 
-=======
-		DetachUserPolicyResult responseDetachUserPolicy = iam.detachUserPolicy(requestDetachUserPolicy);
-
-		System.out.println("Successfully detached policy " + policy_arn + " from role " + username);
-
-		DeleteAccessKeyRequest request = new DeleteAccessKeyRequest().withAccessKeyId(access_key)
-				.withUserName(username);
-
-		DeleteAccessKeyResult response = iam.deleteAccessKey(request);
-
-		System.out.println("Successfully deleted access key " + access_key + " from user " + username);
-		DeleteUserRequest requestDeleteUser = new DeleteUserRequest().withUserName(username);
-
-		try {
-			iam.deleteUser(requestDeleteUser);
-		} catch (DeleteConflictException e) {
-			System.out.println("Unable to delete user. Verify user is not" + " associated with any resources");
-			throw e;
-		}
-
-	}
-
-	/**
-	 * ec2 클라이언트 생성자
-	 * 
-	 * @return
-	 */
-	public AmazonEC2 ec2Client() {
-
-		String accessKeyId = applicationProperties.getAws().getAccessKeyId();
-		String accessKeySecret = applicationProperties.getAws().getAccessKeySecret();
-		String region = applicationProperties.getAws().getRegion();
-
-		BasicAWSCredentials awsCreds = new BasicAWSCredentials(accessKeyId, accessKeySecret);
-		AmazonEC2 ec2 = AmazonEC2ClientBuilder.standard().withRegion(region)
-				.withCredentials(new AWSStaticCredentialsProvider(awsCreds)).build();
-		return ec2;
-	}
-
-	/**
-	 * 현재 계정에 있는 EC2 인스턴스 목록 출력
-	 * 
-	 * 
-	 * 
-	 * @return
-	 */
-
-	public ArrayList<Object> listEC2() {
-		ArrayList<Object> resultList = new ArrayList<>();
-		int i = 0;
-
-		AmazonEC2 ec2 = ec2Client();
-
-		DescribeInstancesRequest request = new DescribeInstancesRequest();
-		boolean done = false;
-
-		while (!done) {
-			DescribeInstancesResult response = ec2.describeInstances(request);
-
-			for (Reservation reservation : response.getReservations()) {
-				for (Instance instance : reservation.getInstances()) {
-
-					Map<String, Object> resultMap = new HashMap<>();
-					resultMap.put("instance_id", instance.getInstanceId());
-					resultMap.put("state", instance.getState().getName());
-
-					resultList.add(i, resultMap);
-
-					logger.debug("listEc2 parameters [{}, {}]", instance.getInstanceId(),
-							instance.getState().getName());
-					i++;
-				}
-			}
-
-			request.setNextToken(response.getNextToken());
-
-			if (response.getNextToken() == null) {
-				done = true;
-			}
-		}
-
-		return resultList;
-
-	}
-
-	/**
-	 * 인스턴스 시작
-	 * 
-	 * @param name
-	 * @return
-	 */
-	public Map<String, Object> createEC2(String name) {
-
-		String ami_id = applicationProperties.getAws().getAmi_id();
-
-		AmazonEC2 ec2 = ec2Client();
-		String secureGroups = applicationProperties.getAws().getSecureGroups();
-		String accessKeyName = applicationProperties.getAws().getAccessKeyName();
-		// test 키페어는 인스턴스 연결에 사용할 키페어로 미리 생성해두어야 한다.
-		// AlloSSH 보안그룹은 콘솔에서 미리 생성한 보안그룹으로, 22포트 인바운드를 열어두었다. (인스턴스 연결을 위해)
-		RunInstancesRequest run_request = new RunInstancesRequest().withImageId(ami_id)
-				.withInstanceType(InstanceType.T2Micro).withMaxCount(1).withMinCount(1).withKeyName(accessKeyName)
-				.withSecurityGroups(secureGroups);
-
-		RunInstancesResult run_response = ec2.runInstances(run_request);
-
-		String reservation_id = run_response.getReservation().getInstances().get(0).getInstanceId();
-
-		Tag tag = new Tag().withKey("Name").withValue(name);
-
-		CreateTagsRequest tag_request = new CreateTagsRequest().withTags(tag);
-		// CreateTagsResult tag_response = ec2.createTags(tag_request);
-
-		Map<String, Object> resultMap = new HashMap<>();
-		resultMap.put("instance_id", reservation_id);
-		logger.debug("instance_id [{}]", reservation_id);
->>>>>>> refs/heads/master
 
 		return resultMap;
 	}
@@ -577,103 +442,15 @@ public class AwsService {
 		StopInstancesRequest request = new StopInstancesRequest().withInstanceIds(instance_id);
 
 		ec2.stopInstances(request);
+
 		System.out.printf("Successfully stop instance %s", instance_id);
 
 		Map<String, Object> resultMap = new HashMap<>();
 		resultMap.put("instance_id", instance_id);
-<<<<<<< HEAD
 
 		logger.debug("instance_id [{}]", instance_id);
 
 		return resultMap;
-=======
-		logger.debug("instance_id [{}]", instance_id);
-
-		return resultMap;
-	}
-
-	/**
-	 * 인스턴스 종료
-	 * 
-	 * @param instance_id
-	 * @return
-	 */
-	public Map<String, Object> terminateEC2(String instance_id) {
-		Map<String, Object> resultMap = new HashMap<>();
-
-		AmazonEC2 ec2 = ec2Client();
-
-		DryRunSupportedRequest<TerminateInstancesRequest> dry_request = () -> {
-			TerminateInstancesRequest request = new TerminateInstancesRequest().withInstanceIds(instance_id);
-
-			return request.getDryRunRequest();
-		};
-
-		DryRunResult dry_response = ec2.dryRun(dry_request);
-
-		if (!dry_response.isSuccessful()) {
-			System.out.printf("Failed dry run to start instance %s", instance_id);
-
-			throw dry_response.getDryRunResponse();
-		}
-
-		TerminateInstancesRequest request = new TerminateInstancesRequest().withInstanceIds(instance_id);
-
-		ec2.terminateInstances(request);
-
-		System.out.printf("Successfully terminated instance %s", instance_id);
-
-		resultMap.put("instance_id", instance_id);
-		logger.debug("instance_id [{}]", instance_id);
-
-		return resultMap;
-	}
-
-	/**
-	 * 
-	 * 인스턴스의 정보 출력
-	 * 
-	 * @return
-	 */
-	public Map<String, Object> descEC2(String instance_id) {
-
-		Map<String, Object> resultMap = new HashMap<>();
-
-		AmazonEC2 ec2 = ec2Client();
-
-		boolean done = false;
-		DescribeInstancesRequest request = new DescribeInstancesRequest();
-		request.withInstanceIds(instance_id);
-		while (!done) {
-
-			DescribeInstancesResult response = ec2.describeInstances(request);
-
-			for (Reservation reservation : response.getReservations()) {
-				for (Instance instance : reservation.getInstances()) {
-					resultMap.put("instance_id", instance.getInstanceId());
-					resultMap.put("ami", instance.getImageId());
-					resultMap.put("state", instance.getState().getName());
-					resultMap.put("type", instance.getInstanceType());
-					resultMap.put("monitoring_state", instance.getMonitoring().getState());
-					resultMap.put("launchTime", instance.getLaunchTime());
-					resultMap.put("public_DNS", instance.getPublicDnsName());
-
-					logger.debug("descEc2 parameters [{}, {}, {}, {}, {}, {}, {}]", instance.getInstanceId(),
-							instance.getImageId(), instance.getState().getName(), instance.getInstanceType(),
-							instance.getMonitoring().getState(), instance.getLaunchTime(), instance.getPublicDnsName());
-				}
-			}
-
-			request.setNextToken(response.getNextToken());
-
-			if (response.getNextToken() == null) {
-				done = true;
-			}
-		}
-
-		return resultMap;
-
->>>>>>> refs/heads/master
 	}
 
 	/**
