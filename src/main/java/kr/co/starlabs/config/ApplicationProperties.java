@@ -15,6 +15,7 @@ public class ApplicationProperties {
 	}
 
 	public static class Aws {
+<<<<<<< HEAD
 
 		private String username;
 		private String accessKeyId;
@@ -29,15 +30,74 @@ public class ApplicationProperties {
 
 		public String getLogArn() {
 			return logArn;
+=======
+		
+		private String username;
+		private String accessKeyId;
+		private String accessKeySecret;
+		private String policy_arn;
+		private String ami_id;
+		private String region;
+		private String secureGroups;
+		private String accessKeyName;
+		
+		public String getAccessKeyName() {
+			return accessKeyName;
+		}
+		public void setAccessKeyName(String accessKeyName) {
+			this.accessKeyName = accessKeyName;
+		}
+		public String getSecureGroups() {
+			return secureGroups;
+		}
+		public void setSecureGroups(String secureGroups) {
+			this.secureGroups = secureGroups;
+		}
+	
+		public String getRegion() {
+			return region;
+		}
+		public void setRegion(String region) {
+			this.region = region;
+		}
+		public String getAmi_id() {
+			return ami_id;
+		}
+		public void setAmi_id(String ami_id) {
+			this.ami_id = ami_id;
+		}
+		public String getPolicy_arn() {
+			return policy_arn;
+		}
+		public void setPolicy_arn(String policy_arn) {
+			this.policy_arn = policy_arn;
+		}
+		public String getUsername() {
+			return username;
+		}
+		public void setUsername(String username) {
+			this.username = username;
+>>>>>>> refs/heads/master
 		}
 
+<<<<<<< HEAD
 		public void setLogArn(String logArn) {
 			this.logArn = logArn;
+=======
+		public String getAccessKeyId() {
+			return accessKeyId;
+>>>>>>> refs/heads/master
 		}
+<<<<<<< HEAD
 
 		public Date getStartTime() {
 			return startTime;
+=======
+		public void setAccessKeyId(String accessKeyId) {
+			this.accessKeyId = accessKeyId;
+>>>>>>> refs/heads/master
 		}
+<<<<<<< HEAD
 
 		public void setStartTime(Date startTime) {
 			this.startTime = startTime;
@@ -107,5 +167,14 @@ public class ApplicationProperties {
 			this.accessKeySecret = accessKeySecret;
 		}
 
+=======
+		public String getAccessKeySecret() {
+			return accessKeySecret;
+		}
+		public void setAccessKeySecret(String accessKeySecret) {
+			this.accessKeySecret = accessKeySecret;
+		}
+		
+>>>>>>> refs/heads/master
 	}
 }

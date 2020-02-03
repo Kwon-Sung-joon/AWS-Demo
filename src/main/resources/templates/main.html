@@ -18,13 +18,21 @@ State       : {{#state}} {{.}} {{/state}} <br>
 Monitoring State   : {{#monitoring_state}} {{.}} {{/monitoring_state}} <br>
 Launch Time : {{#launchTime}} {{.}} {{/launchTime}} <br>
 Public DNS : {{#public_DNS}} {{.}} {{/public_DNS}} <br>
+<<<<<<< HEAD
+=======
+----------------------------------------------------------- <br>
+>>>>>>> refs/heads/master
 
+<<<<<<< HEAD
 State Transition : {{#stateTransition}} {{.}} {{/stateTransition}} <br>
 ----------------------------------------------------------- <br>
 <a href="http://localhost:8080/descEc2?instance_id={{instance_id}}">인스턴스 정보출력</a><br>
 ----------------------------------------------------------- <br>
 <a href="http://localhost:8080/monitoringList?instance_id={{instance_id}}">모니터링</a><br>
 <a href="http://localhost:8080/logEc2?instance_id={{instance_id}}">인스턴스 중지 로그</a><br>
+=======
+<a href="http://localhost:8080/descEc2?instance_id={{instance_id}}">인스턴스 정보출력</a><br>
+>>>>>>> refs/heads/master
 ----------------------------------------------------------- <br>
 <a href="http://localhost:8080/startEc2?instance_id={{instance_id}}">인스턴스 시작</a><br>
 <a href="http://localhost:8080/stopEc2?instance_id={{instance_id}}">인스턴스 정지</a><br>

@@ -89,7 +89,10 @@ public class AwsController {
 		logger.debug("instance_id [{}]", instance_id);
 		Map<String, Object> resultMap = awsService.startEC2(instance_id);
 		model.addAttribute("instance_id", resultMap.get("instance_id"));
+<<<<<<< HEAD
 		model.addAttribute("launchTime", "");
+=======
+>>>>>>> refs/heads/master
 
 		return "main";
 	}
@@ -120,7 +123,11 @@ public class AwsController {
 		logger.debug("instance_id [{}]", instance_id);
 		Map<String, Object> resultMap = awsService.terminateEC2(instance_id);
 		model.addAttribute("instance_id", resultMap.get("instance_id"));
+<<<<<<< HEAD
 		model.addAttribute("launchTime", "");
+=======
+
+>>>>>>> refs/heads/master
 		return "main";
 	}
 
@@ -142,6 +149,7 @@ public class AwsController {
 		model.addAttribute("monitoring_state", resultMap.get("monitoring_state"));
 		model.addAttribute("launchTime", resultMap.get("launchTime"));
 		model.addAttribute("public_DNS", resultMap.get("public_DNS"));
+<<<<<<< HEAD
 		model.addAttribute("stateTransition", resultMap.get("stateTransition"));
 
 		return "main";
@@ -182,6 +190,10 @@ public class AwsController {
 		model.addAttribute("instance_id", instance_id);
 
 		return "monitoringDesc";
+=======
+
+		return "main";
+>>>>>>> refs/heads/master
 	}
 
 }
