@@ -24,6 +24,7 @@
 
 
 
+
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -60,6 +61,14 @@
 		</dependency>
 
 
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>bom</artifactId>
+			<version>2.5.10</version>
+			<type>pom</type>
+			<scope>import</scope>
+		</dependency>
+
 		<!-- aws sdk for java bom (개별 모둘 지정) -->
 
 		<!-- aws sdk iam -->
@@ -84,8 +93,8 @@
 			<artifactId>aws-java-sdk-logs</artifactId>
 			<version>1.11.707</version>
 		</dependency>
-		
-				<dependency>
+
+		<dependency>
 			<groupId>com.amazonaws</groupId>
 			<artifactId>aws-java-sdk-events</artifactId>
 			<version>1.11.707</version>

@@ -3,6 +3,8 @@ package kr.co.starlabs.service.aws;
 import java.util.HashMap;
 
 import java.util.Map;
+
+import org.apache.http.client.CredentialsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -59,6 +61,13 @@ import com.amazonaws.services.ec2.model.DescribeInstancesResult;
 import com.amazonaws.services.ec2.model.Tag;
 import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
 import com.amazonaws.services.ec2.model.CreateTagsRequest;
+
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+//import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.AwsCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.cloudwatchevents.CloudWatchEventsClient;
 import software.amazon.awssdk.services.cloudwatchevents.model.PutRuleRequest;
@@ -72,7 +81,6 @@ import software.amazon.awssdk.services.cloudwatchlogs.model.CreateLogGroupReques
 import software.amazon.awssdk.services.cloudwatchlogs.model.CreateLogGroupResponse;
 import software.amazon.awssdk.services.cloudwatchlogs.model.DescribeLogGroupsResponse;
 import software.amazon.awssdk.services.cloudwatchlogs.model.FilterLogEventsRequest;
-import software.amazon.awssdk.services.cloudwatchlogs.model.GetLogEventsRequest;
 import kr.co.starlabs.config.ApplicationProperties;
 
 /**
@@ -99,8 +107,7 @@ public class AwsService {
 
 		Map<String, Object> resultMap = new HashMap<>();
 
-		final AmazonIdentityManagement iam = AmazonIdentityManagementClientBuilder.defaultClient();
-
+		AmazonIdentityManagement iam = AmazonIdentityManagementClientBuilder.defaultClient();
 		// IAM 유저 생성
 		CreateUserRequest requestCreateUser = new CreateUserRequest().withUserName(username);
 		CreateUserResult responseCreateUser = iam.createUser(requestCreateUser);
@@ -139,7 +146,17 @@ public class AwsService {
 		AttachUserPolicyRequest attach_request = new AttachUserPolicyRequest().withUserName(username)
 				.withPolicyArn(policy_arn);
 
+		AttachUserPolicyRequest attach_request2 = new AttachUserPolicyRequest().withUserName(username)
+				.withPolicyArn("arn:aws:iam::aws:policy/CloudWatchLogsFullAccess");
+
+		AttachUserPolicyRequest attach_request3 = new AttachUserPolicyRequest().withUserName(username)
+				.withPolicyArn("arn:aws:iam::aws:policy/CloudWatchEventsFullAccess");
+
+		// Cloud Watch Logs, Events 정책 추가
+
 		iam.attachUserPolicy(attach_request);
+		iam.attachUserPolicy(attach_request2);
+		iam.attachUserPolicy(attach_request3);
 
 		System.out.println("Successfully attached policy " + policy_arn + " to user " + username);
 
@@ -171,7 +188,15 @@ public class AwsService {
 		DetachUserPolicyRequest requestDetachUserPolicy = new DetachUserPolicyRequest().withUserName(username)
 				.withPolicyArn(policy_arn);
 
-		DetachUserPolicyResult responseDetachUserPolicy = iam.detachUserPolicy(requestDetachUserPolicy);
+		DetachUserPolicyRequest requestDetachUserPolicy2 = new DetachUserPolicyRequest().withUserName(username)
+				.withPolicyArn("arn:aws:iam::aws:policy/CloudWatchLogsFullAccess");
+
+		DetachUserPolicyRequest requestDetachUserPolicy3 = new DetachUserPolicyRequest().withUserName(username)
+				.withPolicyArn("arn:aws:iam::aws:policy/CloudWatchEventsFullAccess");
+
+		iam.detachUserPolicy(requestDetachUserPolicy);
+		iam.detachUserPolicy(requestDetachUserPolicy2);
+		iam.detachUserPolicy(requestDetachUserPolicy3);
 
 		System.out.println("Successfully detached policy " + policy_arn + " from role " + username);
 
@@ -559,13 +584,17 @@ public class AwsService {
 		ArrayList<Object> resultList = new ArrayList<>();
 
 		// CloudWatch 규칙생성 및 로그그룹 연결
-		// 새 IAM 유저에 CloudWatchLogsFullAccess, CloudWatchEventsFullAccess 정책 추가 필요
-		// 방법 1. 유저 생성시 처음부터 정책 부여
-		// 방법 2. log 출력을 원할 시 정책 부여 혹은 새 유저 생성
 
-		CloudWatchEventsClient cwe = CloudWatchEventsClient.builder().build();
+		String accessKeyId = applicationProperties.getAws().getAccessKeyId();
+		String accessKeySecret = applicationProperties.getAws().getAccessKeySecret();
+
+		AwsBasicCredentials awsCreds = AwsBasicCredentials.create(accessKeyId, accessKeySecret);
+
+		CloudWatchEventsClient cwe = CloudWatchEventsClient.builder()
+				.credentialsProvider(StaticCredentialsProvider.create(awsCreds)).build();
 		// 기본 루트 클라이언트로 생성하므로 수정 필요
-		CloudWatchLogsClient cwl = CloudWatchLogsClient.builder().region(Region.AP_NORTHEAST_2).build();
+		CloudWatchLogsClient cwl = CloudWatchLogsClient.builder()
+				.credentialsProvider(StaticCredentialsProvider.create(awsCreds)).region(Region.AP_NORTHEAST_2).build();
 
 		String rule_name = instance_id;
 		// 로그그룹 생성 => 인스턴스 id로 생성
