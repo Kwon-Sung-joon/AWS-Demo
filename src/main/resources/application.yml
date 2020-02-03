@@ -14,8 +14,8 @@ spring:
 application:
   aws:
     username : Users
-    accessKeyId: "My AccessKeyId"
-    accessKeySecret: "My AccsesKeySecret" 
+    accessKeyId: "MyAccessKeyId"
+    accessKeySecret: "MyAccessKeySecret" 
     policy_arn: arn:aws:iam::aws:policy/AmazonEC2FullAccess 
     ami_id: ami-0bea7fd38fabe821a
     region: ap-northeast-2
