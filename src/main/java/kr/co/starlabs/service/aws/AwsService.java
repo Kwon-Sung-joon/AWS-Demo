@@ -31,6 +31,7 @@ import com.amazonaws.services.costexplorer.model.GetCostAndUsageResult;
 import com.amazonaws.services.costexplorer.model.Granularity;
 import com.amazonaws.services.costexplorer.model.Group;
 import com.amazonaws.services.costexplorer.model.GroupDefinition;
+import com.amazonaws.services.costexplorer.model.MetricValue;
 import com.amazonaws.services.costexplorer.model.ResultByTime;
 import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
@@ -58,6 +59,7 @@ import com.amazonaws.services.logs.model.ResourceAlreadyExistsException;
 
 import java.util.Date;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 import com.amazonaws.services.ec2.model.StartInstancesRequest;
@@ -770,8 +772,7 @@ public class AwsService {
 	}
 
 	/**
-	 * CostExplorer를 사요하기 위해서는 정책을 만들어줘야함.
-	 * 콘솔에서 정책 생성 후 현재 자격증명파일에 정책 부여  
+	 * CostExplorer를 사요하기 위해서는 정책을 만들어줘야함. 콘솔에서 정책 생성 후 현재 자격증명파일에 정책 부여
 	 * 
 	 * @return
 	 */
@@ -787,7 +788,7 @@ public class AwsService {
 		expression.withDimensions(dimensions);
 
 		final GetCostAndUsageRequest awsCERequest = new GetCostAndUsageRequest()
-				.withTimePeriod(new DateInterval().withStart("2020-01-21").withEnd("2020-01-30"))
+				.withTimePeriod(new DateInterval().withStart("2020-01-31").withEnd("2020-02-03"))
 				.withGranularity(Granularity.DAILY).withMetrics("BlendedCost")// .withFilter(expression)
 				.withGroupBy(new GroupDefinition().withType("DIMENSION").withKey("SERVICE"));
 
@@ -802,23 +803,38 @@ public class AwsService {
 				GetCostAndUsageResult ceResult = ce.getCostAndUsage(awsCERequest);
 
 				for (ResultByTime resultByTime : ceResult.getResultsByTime()) {
-
-					System.out.println(resultByTime.getTimePeriod());
-
+					System.out.println(resultByTime.getTimePeriod().getStart());
+					double sum = 0;
 					for (Group groups : resultByTime.getGroups()) {
-
 						Map<String, Object> resultMap = new HashMap<>();
+
+						String metrics = groups.getMetrics().values().toString();
+						String target = "Amount";
+						String target2 = "Unit";
+						String amount = metrics.substring(metrics.indexOf("Amount")+target.length()+2, metrics.indexOf("Unit")-1);
+						String unit = metrics.substring(metrics.indexOf("Unit")+target2.length()+2, metrics.length()-2);
+
+				
 						resultMap.put("keys", groups.getKeys());
-						resultMap.put("metrics", groups.getMetrics());
-						resultMap.put("time", resultByTime.getTimePeriod());
+						resultMap.put("metrics", groups.getMetrics().values());
+						resultMap.put("amount",amount);
+						
+						resultMap.put("time", resultByTime.getTimePeriod().getStart());
+
+						
+						
+						sum+= Double.parseDouble(amount);
+						
+						System.out.println(groups.getKeys());
+						System.out.println(amount);
+						System.out.println(unit);
 							
 						resultList.add(i, resultMap);
-						
-						System.out.println(resultByTime.getTimePeriod());
-					
 						i++;
 					}
 					
+					System.out.println(String.format("합계 : %.2f", sum));
+					System.out.println();
 				}
 
 				awsCERequest.setNextPageToken(ceResult.getNextPageToken());

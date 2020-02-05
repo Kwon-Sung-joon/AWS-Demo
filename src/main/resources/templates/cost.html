@@ -2,23 +2,82 @@
 <html>
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	
+	<script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
+	
     <title>AWS EC2</title>
 </head>
-
 <body>
-
-   목록<br>
------------------------------------------------------------ <br>
-   
------------------------------------------------------------ <br>
+	<div style="width: 75%;">
+		<canvas id="canvas"></canvas>
+	</div>
 
 
-{{#costs}}
-<li>Keys : {{keys}}
-Metrics : {{metrics}}
-Date : {{time}}
-</li><br>
-{{/costs}}
+
+		{{#costs}}
+		{{time}}
+			<li>{{keys}}
+    			{{amount}} </li>
+	
+		{{/costs}}
+	<script>
+		var label = new Array();
+		var data = new Array();
+		var name='';
+		
+		
+		{{#costs}}
+			label.push("{{keys}}");
+			data.push("{{amount}}");
+		{{/costs}}
+		
+	
+		var config = {
+			type : 'line',
+			data : {
+				labels : label,
+				datasets : [ {
+					label : name,
+					data : data,
+		            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+		            borderColor: 'rgba(54, 162, 235, 1)',
+		            fill : false,
+				} ]
+			},
+			options : {
+				responsive : true,
+				tooltips : {
+					mode : 'index',
+					intersect : false,
+				},
+				hover : {
+					mode : 'nearest',
+					intersect : true
+				},
+				scales : {
+					x : {
+						display : true,
+						scaleLabel : {
+							display : true,
+							labelString : 'Month'
+						}
+					},
+					y : {
+						display : true,
+						scaleLabel : {
+							display : true,
+							labelString : 'Value'
+						}
+					}
+				}
+			}
+		};
+
+			var ctx = document.getElementById("canvas").getContext('2d');
+			var canvas = new Chart(ctx, config);
+	</script>
+
+
 
 
 ----------------------------------------------------------- <br>
