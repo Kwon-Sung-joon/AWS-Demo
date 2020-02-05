@@ -3,6 +3,7 @@ package kr.co.starlabs.service.aws;
 import java.util.HashMap;
 
 import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,9 +21,21 @@ import com.amazonaws.services.cloudwatch.model.ListMetricsResult;
 import com.amazonaws.services.cloudwatch.model.Metric;
 import com.amazonaws.services.cloudwatch.model.MetricDataQuery;
 import com.amazonaws.services.cloudwatch.model.MetricStat;
+import com.amazonaws.services.costexplorer.AWSCostExplorer;
+import com.amazonaws.services.costexplorer.AWSCostExplorerClientBuilder;
+import com.amazonaws.services.costexplorer.model.DateInterval;
+import com.amazonaws.services.costexplorer.model.DimensionValues;
+import com.amazonaws.services.costexplorer.model.Expression;
+import com.amazonaws.services.costexplorer.model.GetCostAndUsageRequest;
+import com.amazonaws.services.costexplorer.model.GetCostAndUsageResult;
+import com.amazonaws.services.costexplorer.model.Granularity;
+import com.amazonaws.services.costexplorer.model.Group;
+import com.amazonaws.services.costexplorer.model.GroupDefinition;
+import com.amazonaws.services.costexplorer.model.ResultByTime;
 import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
 import com.amazonaws.services.ec2.model.DryRunResult;
+
 import com.amazonaws.services.ec2.model.DryRunSupportedRequest;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagementClientBuilder;
@@ -79,6 +92,7 @@ import software.amazon.awssdk.services.cloudwatchlogs.model.CreateLogGroupReques
 import software.amazon.awssdk.services.cloudwatchlogs.model.CreateLogGroupResponse;
 import software.amazon.awssdk.services.cloudwatchlogs.model.DescribeLogGroupsResponse;
 import software.amazon.awssdk.services.cloudwatchlogs.model.FilterLogEventsRequest;
+
 import kr.co.starlabs.config.ApplicationProperties;
 
 /**
@@ -378,7 +392,6 @@ public class AwsService {
 		PutTargetsRequest targetRequest = PutTargetsRequest.builder().targets(target).rule(rule_name).build();
 		PutTargetsResponse targetResponse = cwe.putTargets(targetRequest);
 
-
 		return resultMap;
 	}
 
@@ -568,6 +581,7 @@ public class AwsService {
 		// 해당 인스턴스의 확인할 수 있는 지표명 리스트
 		ListMetricsRequest requestMetricLst = new ListMetricsRequest().withNamespace("AWS/EC2")
 				.withDimensions(dimensions);
+
 		boolean flag = false;
 		while (!flag) {
 			ListMetricsResult response = cw.listMetrics(requestMetricLst);
@@ -600,7 +614,9 @@ public class AwsService {
 		ArrayList<Object> resultList = new ArrayList<>();
 
 		// 함수를 호출했을 때의 시간을 endTime으로, startTime( = 인스턴스 시작시간) 부터 현재 시간까지의 정보
+
 		Date endTime = new Date();
+
 		// 지표 데이터를 가져올 간격( 기본값은 최소 5분, 세부 모니터링 활성화 시 1분 까지 가능)
 		Integer integer = new Integer(300);
 
@@ -616,6 +632,10 @@ public class AwsService {
 		filter.setName("InstanceId");
 		filter.setValue(instance_id);
 
+		// startTime Demo.
+		// Date startTime = new Date(endTime.getTime());
+		// startTime.setMinutes(50);
+
 		GetMetricDataRequest md = new GetMetricDataRequest().withEndTime(endTime)
 				.withStartTime(applicationProperties.getAws().getStartTime()).withMetricDataQueries();
 
@@ -627,6 +647,7 @@ public class AwsService {
 
 		// id는 임의 값
 		MetricDataQuery metricDataQuery = new MetricDataQuery().withId("m1").withMetricStat(metricStat);
+
 		md.withMetricDataQueries(metricDataQuery);
 
 		GetMetricDataResult rms = cw.getMetricData(md);
@@ -638,6 +659,7 @@ public class AwsService {
 			Map<String, Object> resultMap = new HashMap<>();
 			resultMap.put("values", rms.getMetricDataResults().get(0).getValues()
 					.get(rms.getMetricDataResults().get(0).getTimestamps().size() - (1 + i)));
+
 			resultMap.put("time", rms.getMetricDataResults().get(0).getTimestamps()
 					.get(rms.getMetricDataResults().get(0).getTimestamps().size() - (1 + i)));
 
@@ -726,6 +748,8 @@ public class AwsService {
 
 				System.out.println(cwl.filterLogEvents(filterLogEventsRequest).events().get(i).message());
 
+				// System.out.println(cwl.filterLogEvents(filterLogEventsRequest).events().get(i).message().getClass());
+
 				Date time = new Date(cwl.filterLogEvents(filterLogEventsRequest).events().get(i).timestamp());
 
 				Map<String, Object> resultMap = new HashMap<>();
@@ -742,6 +766,71 @@ public class AwsService {
 		/**
 		 * 위에서 처리한 로그 데이터 리턴
 		 */
+		return resultList;
+	}
+
+	/**
+	 * CostExplorer를 사요하기 위해서는 정책을 만들어줘야함.
+	 * 콘솔에서 정책 생성 후 현재 자격증명파일에 정책 부여  
+	 * 
+	 * @return
+	 */
+	public ArrayList<Object> cost() {
+
+		ArrayList<Object> resultList = new ArrayList<>();
+
+		Expression expression = new Expression();
+		DimensionValues dimensions = new DimensionValues();
+
+		dimensions.withKey(com.amazonaws.services.costexplorer.model.Dimension.SERVICE);
+		dimensions.withValues("EC2");
+		expression.withDimensions(dimensions);
+
+		final GetCostAndUsageRequest awsCERequest = new GetCostAndUsageRequest()
+				.withTimePeriod(new DateInterval().withStart("2020-01-21").withEnd("2020-01-30"))
+				.withGranularity(Granularity.DAILY).withMetrics("BlendedCost")// .withFilter(expression)
+				.withGroupBy(new GroupDefinition().withType("DIMENSION").withKey("SERVICE"));
+
+		try {
+			BasicAWSCredentials awsCreds = new BasicAWSCredentials(applicationProperties.getAws().getAccessKeyId(),
+					applicationProperties.getAws().getAccessKeySecret());
+			AWSCostExplorer ce = AWSCostExplorerClientBuilder.standard().withRegion("ap-northeast-2")
+					.withCredentials(new AWSStaticCredentialsProvider(awsCreds)).build();
+			boolean done = false;
+			int i = 0;
+			while (!done) {
+				GetCostAndUsageResult ceResult = ce.getCostAndUsage(awsCERequest);
+
+				for (ResultByTime resultByTime : ceResult.getResultsByTime()) {
+
+					System.out.println(resultByTime.getTimePeriod());
+
+					for (Group groups : resultByTime.getGroups()) {
+
+						Map<String, Object> resultMap = new HashMap<>();
+						resultMap.put("keys", groups.getKeys());
+						resultMap.put("metrics", groups.getMetrics());
+						resultMap.put("time", resultByTime.getTimePeriod());
+							
+						resultList.add(i, resultMap);
+						
+						System.out.println(resultByTime.getTimePeriod());
+					
+						i++;
+					}
+					
+				}
+
+				awsCERequest.setNextPageToken(ceResult.getNextPageToken());
+
+				if (ceResult.getNextPageToken() == null) {
+					done = true;
+				}
+			}
+
+		} catch (final Exception e) {
+			System.out.println(e);
+		}
 		return resultList;
 	}
 }

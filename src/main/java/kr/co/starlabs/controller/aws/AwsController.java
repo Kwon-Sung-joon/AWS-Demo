@@ -183,5 +183,12 @@ public class AwsController {
 		return "monitoringDesc";
 
 	}
+	
+	@RequestMapping("/cost")
+	public String cost(Model model) {
+		ArrayList<Object> resultList = awsService.cost();
+		model.addAttribute("costs",resultList);
+		return "cost";
+	}
 
 }
