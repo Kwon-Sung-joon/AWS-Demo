@@ -179,15 +179,18 @@ public class AwsController {
 		model.addAttribute("monitoring", resultList);
 		model.addAttribute("metricName", metricName);
 		model.addAttribute("instance_id", instance_id);
-
 		return "monitoringDesc";
 
 	}
 	
 	@RequestMapping("/cost")
 	public String cost(Model model) {
-		ArrayList<Object> resultList = awsService.cost();
-		model.addAttribute("costs",resultList);
+		ArrayList<Object> result = awsService.cost();
+		for(int i=0; i<result.size(); i++) {
+			System.out.println(result.get(i));
+		}
+			
+		model.addAttribute("costs",result);
 		return "cost";
 	}
 

@@ -39,7 +39,7 @@ public class BillingTest {
 		expression.withDimensions(dimensions);
 
 		final GetCostAndUsageRequest awsCERequest = new GetCostAndUsageRequest()
-				.withTimePeriod(new DateInterval().withStart("2020-01-31").withEnd("2020-02-03"))
+				.withTimePeriod(new DateInterval().withStart("2020-01-01").withEnd("2020-02-01"))
 				.withGranularity(Granularity.DAILY).withMetrics("BlendedCost")// .withFilter(expression)
 				.withGroupBy(new GroupDefinition().withType("DIMENSION").withKey("SERVICE"));
 
@@ -51,19 +51,19 @@ public class BillingTest {
 			boolean done = false;
 			int i = 0;
 
-			
 			String target = "Amount";
 			String target2 = "Unit";
-			ArrayList<Object> resultList = new ArrayList<>();
+			
+			ArrayList<Object> keyValues = new ArrayList<>();
+			Map<String, Object> values = new HashMap<>();
+
 			while (!done) {
 				GetCostAndUsageResult ceResult = ce.getCostAndUsage(awsCERequest);
-
+				
 				for (ResultByTime resultByTime : ceResult.getResultsByTime()) {
+					ArrayList<Object> resultList = new ArrayList<>();
 
 					System.out.println(resultByTime.getTimePeriod().getStart());
-
-
-	
 
 					// resultList.add(i,resultByTime.getTimePeriod().getStart().toString());
 					double sum = 0;
@@ -83,31 +83,35 @@ public class BillingTest {
 						String unit = metrics.substring(metrics.indexOf("Unit") + target2.length() + 2,
 								metrics.length() - 2);
 
-						//e.g. resultMap : [{amount = 0, keys = AWS Glue}]
+						// e.g. resultMap : [{amount = 0, keys = AWS Glue}]
 						resultMap.put("amount", amount);
-						resultMap.put("keys", groups.getKeys().toString().substring(1, groups.getKeys().toString().length()-1));
+						resultMap.put("keys",
+								groups.getKeys().toString().substring(1, groups.getKeys().toString().length() - 1));
 
 						sum += Double.parseDouble(amount);
 
 						System.out.println(resultMap);
-						resultList.add(i,resultMap);
-						i++;
+						resultList.add(resultMap);
 					}
-
+					
+				
+					
 					System.out.println();
-					System.out.println(resultList);
-					System.out.println();
+					values.put("key",resultByTime.getTimePeriod().getStart());
+					values.put("values", resultList);
+					keyValues.add(i,values);
 					// System.out.println(String.for mat("합계 : %.2f", sum));
 
 				}
-
+				
 				awsCERequest.setNextPageToken(ceResult.getNextPageToken());
 
 				if (ceResult.getNextPageToken() == null) {
 					done = true;
 				}
 			}
-
+			System.out.println();
+			System.out.println(keyValues);
 		} catch (final Exception e) {
 			System.out.println(e);
 

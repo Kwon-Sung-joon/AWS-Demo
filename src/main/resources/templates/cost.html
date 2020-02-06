@@ -15,22 +15,24 @@
 
 
 		{{#costs}}
-		{{time}}
-			<li>{{keys}}
-    			{{amount}} </li>
-	
+			{{key}}
+			
+				{{#value}}
+			<li>		{{keys}} : ${{amount}}</li>
+				{{/value}}
+			
+				<li>Total : ${{total}}</li>
+			
 		{{/costs}}
 	<script>
 		var label = new Array();
 		var data = new Array();
 		var name='';
 		
-		
 		{{#costs}}
-			label.push("{{keys}}");
-			data.push("{{amount}}");
+			label.push("{{key}}");
+			data.push("{{total}}");
 		{{/costs}}
-		
 	
 		var config = {
 			type : 'horizontalBar',

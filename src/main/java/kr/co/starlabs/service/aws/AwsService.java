@@ -777,8 +777,7 @@ public class AwsService {
 	 * @return
 	 */
 	public ArrayList<Object> cost() {
-
-		ArrayList<Object> resultList = new ArrayList<>();
+		ArrayList<Object> keyValues = new ArrayList<>();
 
 		Expression expression = new Expression();
 		DimensionValues dimensions = new DimensionValues();
@@ -788,7 +787,7 @@ public class AwsService {
 		expression.withDimensions(dimensions);
 
 		final GetCostAndUsageRequest awsCERequest = new GetCostAndUsageRequest()
-				.withTimePeriod(new DateInterval().withStart("2020-01-31").withEnd("2020-02-03"))
+				.withTimePeriod(new DateInterval().withStart("2020-01-01").withEnd("2020-02-03"))
 				.withGranularity(Granularity.DAILY).withMetrics("BlendedCost")// .withFilter(expression)
 				.withGroupBy(new GroupDefinition().withType("DIMENSION").withKey("SERVICE"));
 
@@ -799,42 +798,55 @@ public class AwsService {
 					.withCredentials(new AWSStaticCredentialsProvider(awsCreds)).build();
 			boolean done = false;
 			int i = 0;
+
+			String target = "Amount";
+			String target2 = "Unit";
+
+
 			while (!done) {
 				GetCostAndUsageResult ceResult = ce.getCostAndUsage(awsCERequest);
 
 				for (ResultByTime resultByTime : ceResult.getResultsByTime()) {
+					ArrayList<Object> resultList = new ArrayList<>();
+					Map<String, Object> values = new HashMap<>();
+
 					System.out.println(resultByTime.getTimePeriod().getStart());
+
+					// resultList.add(i,resultByTime.getTimePeriod().getStart().toString());
 					double sum = 0;
+
 					for (Group groups : resultByTime.getGroups()) {
+						// e.g. Groups : [{Keys: [AWS Glue],Metrics: {BlendedCost={Amount: 0,Unit:
+						// USD}}}]
+
 						Map<String, Object> resultMap = new HashMap<>();
-
+						// e.g. Metrics = [{ amount : 0, keys=[TAX]}
 						String metrics = groups.getMetrics().values().toString();
-						String target = "Amount";
-						String target2 = "Unit";
-						String amount = metrics.substring(metrics.indexOf("Amount")+target.length()+2, metrics.indexOf("Unit")-1);
-						String unit = metrics.substring(metrics.indexOf("Unit")+target2.length()+2, metrics.length()-2);
 
-				
-						resultMap.put("keys", groups.getKeys());
-						resultMap.put("metrics", groups.getMetrics().values());
-						resultMap.put("amount",amount);
-						
-						resultMap.put("time", resultByTime.getTimePeriod().getStart());
+						// amount 값만 저장
+						String amount = metrics.substring(metrics.indexOf("Amount") + target.length() + 2,
+								metrics.indexOf("Unit") - 1);
+						// unit 값만 저장
+						String unit = metrics.substring(metrics.indexOf("Unit") + target2.length() + 2,
+								metrics.length() - 2);
 
+						// e.g. resultMap : [{amount = 0, keys = AWS Glue}]
+						resultMap.put("amount", amount);
+						resultMap.put("keys",
+								groups.getKeys().toString().substring(1, groups.getKeys().toString().length() - 1));
+
+						sum += Double.parseDouble(amount);
 						
-						
-						sum+= Double.parseDouble(amount);
-						
-						System.out.println(groups.getKeys());
-						System.out.println(amount);
-						System.out.println(unit);
-							
-						resultList.add(i, resultMap);
-						i++;
+						System.out.println(resultMap);
+						resultList.add(resultMap);
 					}
-					
-					System.out.println(String.format("합계 : %.2f", sum));
+					values.put("total",String.format("%.2f", sum));
 					System.out.println();
+					values.put("key", resultByTime.getTimePeriod().getStart());
+					values.put("value", resultList);
+					keyValues.add(i, values);
+					// System.out.println(String.for mat("합계 : %.2f", sum));
+
 				}
 
 				awsCERequest.setNextPageToken(ceResult.getNextPageToken());
@@ -847,6 +859,6 @@ public class AwsService {
 		} catch (final Exception e) {
 			System.out.println(e);
 		}
-		return resultList;
+		return keyValues;
 	}
 }
