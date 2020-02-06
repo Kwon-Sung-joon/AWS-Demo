@@ -167,6 +167,8 @@ public class AwsService {
 		AttachUserPolicyRequest attach_request3 = new AttachUserPolicyRequest().withUserName(username)
 				.withPolicyArn("arn:aws:iam::aws:policy/CloudWatchEventsFullAccess");
 
+
+
 		// Cloud Watch Logs, Events 정책 추가
 
 		iam.attachUserPolicy(attach_request);
@@ -229,7 +231,7 @@ public class AwsService {
 			System.out.println("Unable to delete user. Verify user is not" + " associated with any resources");
 			throw e;
 		}
-
+		
 	}
 
 	/**
