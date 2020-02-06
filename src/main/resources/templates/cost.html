@@ -1,48 +1,73 @@
 <!doctype html>
 <html>
 <head>
-	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-	
-	<script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
-	
-    <title>AWS EC2</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
+
+<title>AWS EC2</title>
 </head>
 <body>
-	<div style="width: 75%;">
+	<div style="width: 50%;">
 		<canvas id="canvas"></canvas>
 	</div>
 
+	<br> ----------------------------------------------------------------------------------------------------------------------------------------------------------
+	<br>
 
 
-		{{#costs}}
-			{{key}}
-			
-				{{#value}}
-			<li>		{{keys}} : ${{amount}}</li>
-				{{/value}}
-			
-				<li>Total : ${{total}}</li>
-			
-		{{/costs}}
+	<div style= "position : absolute; top : 0; right : 0;">
+
+		<li><a href="http://localhost:8080/cost?filter=all">ALL</a></li>
+		<li><a href="http://localhost:8080/cost?filter=AWS Config">AWS Config</a></li>
+		<li><a href="http://localhost:8080/cost?filter=AWS Glue">AWS Glue</a></li>
+		<li><a href="http://localhost:8080/cost?filter=AWS Key Management Service">AWS Key Management Service</a></li>
+		<li><a href="http://localhost:8080/cost?filter=AWS Lambda">AWS Lambda</a></li>
+		<li><a href="http://localhost:8080/cost?filter=EC2 - Other">EC2 - Other</a></li>
+		<li><a href="http://localhost:8080/cost?filter=Amazon Elastic Compute Cloud - Compute">Amazon Elastic Compute Cloud - Compute</a></li>
+		<li><a href="http://localhost:8080/cost?filter=Amazon Simple Notification Service">Amazon Simple Notification Service</a></li>
+		<li><a href="http://localhost:8080/cost?filter=Amazon Simple Queue Service">Amazon Simple Queue Service</a></li>
+		<li><a href="http://localhost:8080/cost?filter=Amazon Simple Storage Service">Amazon Simple Storage Service</a></li>
+		<li><a href="http://localhost:8080/cost?filter=AmazonCloudWatch">AmazonCloudWatch</a></li>
+		<li><a href="http://localhost:8080/cost?filter=CloudWatch Events">CloudWatch Events</a></li>
+		<li><a href="http://localhost:8080/cost?filter=Tax">Tax</a></li>		
+	</div>
+
+
+	<div>
+		{{#costs}} {{date}} {{#metrics}}
+		<li>{{keys}} : ${{amount}}</li> {{/metrics}}
+
+		<li>Total : ${{total}}</li> <br>{{/costs}}
+	</div>
+
+<script>
+	function filter(e){
+		document.write(e);
+	}
+</script>
+
+
+	
 	<script>
 		var label = new Array();
 		var data = new Array();
 		var name='';
 		
 		{{#costs}}
-			label.push("{{key}}");
+			label.push("{{date}}");
 			data.push("{{total}}");
 		{{/costs}}
 	
 		var config = {
-			type : 'horizontalBar',
+			type : 'bar',
 			data : {
 				labels : label,
 				datasets : [ {
-					label : name,
+					label : 'Total',
 					data : data,
-		            backgroundColor: 'rgba(255, 128, 0, 0.2)',
-		            borderColor: 'rgba(255, 128, 0, 1)',
+		            backgroundColor: 'rgba(255, 128, 0, 1)',
+		            borderColor: 'rgba(255, 128, 0, 0.5)',
 		            fill : false,
 				} ]
 			},
@@ -82,10 +107,13 @@
 
 
 
------------------------------------------------------------ <br>
-<a href="http://localhost:8080/listEc2">인스턴스 목록</a><br>
------------------------------------------------------------ <br>
-<a href="http://localhost:8080/logout">로그아웃</a><br>
+	-----------------------------------------------------------
+	<br>
+	<a href="http://localhost:8080/listEc2">인스턴스 목록</a>
+	<br> -----------------------------------------------------------
+	<br>
+	<a href="http://localhost:8080/logout">로그아웃</a>
+	<br>
 
 
 </body>

@@ -1,7 +1,5 @@
 package kr.co.starlabs.controller.aws;
 
-import java.util.Map;
-import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,7 +10,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import kr.co.starlabs.service.aws.AwsService;
 
-import java.util.ArrayList;
+import java.util.*;
 
 /**
  * 
@@ -184,12 +182,12 @@ public class AwsController {
 	}
 	
 	@RequestMapping("/cost")
-	public String cost(Model model) {
-		ArrayList<Object> result = awsService.cost();
-		for(int i=0; i<result.size(); i++) {
-			System.out.println(result.get(i));
+	public String cost(Model model, @RequestParam(required = false, value = "filter") String filter ) {
+		if(filter == null || filter == "all") {
+			filter="all";
 		}
-			
+		ArrayList<Object> result = awsService.cost(filter);
+	
 		model.addAttribute("costs",result);
 		return "cost";
 	}

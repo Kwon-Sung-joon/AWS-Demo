@@ -166,15 +166,18 @@ public class AwsService {
 
 		AttachUserPolicyRequest attach_request3 = new AttachUserPolicyRequest().withUserName(username)
 				.withPolicyArn("arn:aws:iam::aws:policy/CloudWatchEventsFullAccess");
-
-
-
+		
+		AttachUserPolicyRequest attach_request4 = new AttachUserPolicyRequest().withUserName(username)
+				.withPolicyArn("arn:aws:iam::672956273056:policy/AWSCostExplorerServiceFullAccess");
+		
 		// Cloud Watch Logs, Events 정책 추가
 
 		iam.attachUserPolicy(attach_request);
 		iam.attachUserPolicy(attach_request2);
 		iam.attachUserPolicy(attach_request3);
-
+		
+		iam.attachUserPolicy(attach_request4);
+		
 		System.out.println("Successfully attached policy " + policy_arn + " to user " + username);
 
 		// 생성한 유저의 액세스 키 ID,시크릿 키를 기본 값으로 지정
@@ -211,9 +214,14 @@ public class AwsService {
 		DetachUserPolicyRequest requestDetachUserPolicy3 = new DetachUserPolicyRequest().withUserName(username)
 				.withPolicyArn("arn:aws:iam::aws:policy/CloudWatchEventsFullAccess");
 
+		DetachUserPolicyRequest requestDetachUserPolicy4 = new DetachUserPolicyRequest().withUserName(username)
+				.withPolicyArn("arn:aws:iam::672956273056:policy/AWSCostExplorerServiceFullAccess");
+		
 		iam.detachUserPolicy(requestDetachUserPolicy);
 		iam.detachUserPolicy(requestDetachUserPolicy2);
 		iam.detachUserPolicy(requestDetachUserPolicy3);
+		iam.detachUserPolicy(requestDetachUserPolicy4);
+
 
 		System.out.println("Successfully detached policy " + policy_arn + " from role " + username);
 
@@ -231,7 +239,7 @@ public class AwsService {
 			System.out.println("Unable to delete user. Verify user is not" + " associated with any resources");
 			throw e;
 		}
-		
+
 	}
 
 	/**
@@ -778,20 +786,28 @@ public class AwsService {
 	 * 
 	 * @return
 	 */
-	public ArrayList<Object> cost() {
+	public ArrayList<Object> cost(String filter) {
 		ArrayList<Object> keyValues = new ArrayList<>();
-
 		Expression expression = new Expression();
 		DimensionValues dimensions = new DimensionValues();
 
-		dimensions.withKey(com.amazonaws.services.costexplorer.model.Dimension.SERVICE);
-		dimensions.withValues("EC2");
-		expression.withDimensions(dimensions);
-
+		
 		final GetCostAndUsageRequest awsCERequest = new GetCostAndUsageRequest()
-				.withTimePeriod(new DateInterval().withStart("2020-01-01").withEnd("2020-02-03"))
-				.withGranularity(Granularity.DAILY).withMetrics("BlendedCost")// .withFilter(expression)
+				.withTimePeriod(new DateInterval().withStart("2020-01-01").withEnd("2020-02-06"))
+				.withGranularity(Granularity.DAILY).withMetrics("BlendedCost")
 				.withGroupBy(new GroupDefinition().withType("DIMENSION").withKey("SERVICE"));
+	
+		
+		if(!(filter.equalsIgnoreCase("all"))){
+			dimensions.withKey(com.amazonaws.services.costexplorer.model.Dimension.SERVICE);
+			dimensions.withValues(filter);
+			expression.withDimensions(dimensions);	
+			
+			awsCERequest.withFilter(expression);
+		}
+		
+		
+		
 
 		try {
 			BasicAWSCredentials awsCreds = new BasicAWSCredentials(applicationProperties.getAws().getAccessKeyId(),
@@ -799,38 +815,33 @@ public class AwsService {
 			AWSCostExplorer ce = AWSCostExplorerClientBuilder.standard().withRegion("ap-northeast-2")
 					.withCredentials(new AWSStaticCredentialsProvider(awsCreds)).build();
 			boolean done = false;
-			int i = 0;
 
-			String target = "Amount";
-			String target2 = "Unit";
-
+			String targetAmount = "Amount";
+			String targetUnit = "Unit";
 
 			while (!done) {
 				GetCostAndUsageResult ceResult = ce.getCostAndUsage(awsCERequest);
-
+				
 				for (ResultByTime resultByTime : ceResult.getResultsByTime()) {
 					ArrayList<Object> resultList = new ArrayList<>();
 					Map<String, Object> values = new HashMap<>();
 
-					System.out.println(resultByTime.getTimePeriod().getStart());
-
-					// resultList.add(i,resultByTime.getTimePeriod().getStart().toString());
 					double sum = 0;
 
+					// e.g. Groups : [{Keys: [AWS Glue],Metrics: {BlendedCost={Amount: 0,Unit:
+					// USD}}}]
 					for (Group groups : resultByTime.getGroups()) {
-						// e.g. Groups : [{Keys: [AWS Glue],Metrics: {BlendedCost={Amount: 0,Unit:
-						// USD}}}]
-
+						
 						Map<String, Object> resultMap = new HashMap<>();
 						// e.g. Metrics = [{ amount : 0, keys=[TAX]}
 						String metrics = groups.getMetrics().values().toString();
 
 						// amount 값만 저장
-						String amount = metrics.substring(metrics.indexOf("Amount") + target.length() + 2,
+						String amount = metrics.substring(metrics.indexOf("Amount") + targetAmount.length() + 2,
 								metrics.indexOf("Unit") - 1);
 						// unit 값만 저장
-						String unit = metrics.substring(metrics.indexOf("Unit") + target2.length() + 2,
-								metrics.length() - 2);
+						// String unit = metrics.substring(metrics.indexOf("Unit") + targetUnit.length()
+						// + 2,metrics.length() - 2);
 
 						// e.g. resultMap : [{amount = 0, keys = AWS Glue}]
 						resultMap.put("amount", amount);
@@ -838,26 +849,25 @@ public class AwsService {
 								groups.getKeys().toString().substring(1, groups.getKeys().toString().length() - 1));
 
 						sum += Double.parseDouble(amount);
-						
-						System.out.println(resultMap);
+
 						resultList.add(resultMap);
+						
 					}
-					values.put("total",String.format("%.2f", sum));
-					System.out.println();
-					values.put("key", resultByTime.getTimePeriod().getStart());
-					values.put("value", resultList);
-					keyValues.add(i, values);
-					// System.out.println(String.for mat("합계 : %.2f", sum));
+					values.put("date", resultByTime.getTimePeriod().getStart());
+					values.put("metrics", resultList);
+					values.put("total", String.format("%.3f", sum));
+					
+					keyValues.add(values);
 
 				}
-
+				
 				awsCERequest.setNextPageToken(ceResult.getNextPageToken());
 
 				if (ceResult.getNextPageToken() == null) {
 					done = true;
 				}
 			}
-
+			
 		} catch (final Exception e) {
 			System.out.println(e);
 		}
