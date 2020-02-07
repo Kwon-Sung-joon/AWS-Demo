@@ -5,59 +5,149 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
 
+
+<script type="text/javascript"
+	src="https://cdn.jsdelivr.net/jquery/latest/jquery.min.js"></script>
+<script type="text/javascript"
+	src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+<script type="text/javascript"
+	src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+<link rel="stylesheet" type="text/css"
+	href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+
+
 <title>AWS EC2</title>
+<style>
+a {
+	text-decoration: none;
+}
+
+a:link {
+	color: black;
+}
+
+a:visited {
+	color: black;
+}
+
+a:hover {
+	color: gray;
+}
+
+input {
+	width: auto;
+	text-align: center;
+}
+</style>
+
 </head>
 <body>
-	<div style="width: 50%;">
-		<canvas id="canvas"></canvas>
-	</div>
-
-	<br> ----------------------------------------------------------------------------------------------------------------------------------------------------------
-	<br>
 
 
-	<div style= "position : absolute; top : 0; right : 0;">
-
-		<li><a href="http://localhost:8080/cost?filter=all">ALL</a></li>
-		<li><a href="http://localhost:8080/cost?filter=AWS Config">AWS Config</a></li>
-		<li><a href="http://localhost:8080/cost?filter=AWS Glue">AWS Glue</a></li>
-		<li><a href="http://localhost:8080/cost?filter=AWS Key Management Service">AWS Key Management Service</a></li>
-		<li><a href="http://localhost:8080/cost?filter=AWS Lambda">AWS Lambda</a></li>
-		<li><a href="http://localhost:8080/cost?filter=EC2 - Other">EC2 - Other</a></li>
-		<li><a href="http://localhost:8080/cost?filter=Amazon Elastic Compute Cloud - Compute">Amazon Elastic Compute Cloud - Compute</a></li>
-		<li><a href="http://localhost:8080/cost?filter=Amazon Simple Notification Service">Amazon Simple Notification Service</a></li>
-		<li><a href="http://localhost:8080/cost?filter=Amazon Simple Queue Service">Amazon Simple Queue Service</a></li>
-		<li><a href="http://localhost:8080/cost?filter=Amazon Simple Storage Service">Amazon Simple Storage Service</a></li>
-		<li><a href="http://localhost:8080/cost?filter=AmazonCloudWatch">AmazonCloudWatch</a></li>
-		<li><a href="http://localhost:8080/cost?filter=CloudWatch Events">CloudWatch Events</a></li>
-		<li><a href="http://localhost:8080/cost?filter=Tax">Tax</a></li>		
-	</div>
-
-
-	<div>
-		{{#costs}} {{date}} {{#metrics}}
-		<li>{{keys}} : ${{amount}}</li> {{/metrics}}
-
-		<li>Total : ${{total}}</li> <br>{{/costs}}
-	</div>
-
-<script>
-	function filter(e){
-		document.write(e);
-	}
-</script>
-
-
+	<script type="text/javascript">
+	$(function() {
 	
+	  $('input[name="datefilter"]').daterangepicker({
+
+			    ranges: {
+			        'Today': [moment(), moment()],
+			        'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+			        'Last 7 Days': [moment().subtract(6, 'days'), moment()],
+			        'Last 30 Days': [moment().subtract(29, 'days'), moment()],
+			        'This Month': [moment().startOf('month'), moment().endOf('month')],
+			        'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+			    },
+			    "showCustomRangeLabel": false,
+			    "alwaysShowCalendars": true,
+			    "startDate": "01/01/2020",
+			    "endDate": "01/02/2020"
+			    
+			}),
+		$('input[name="datefilter"]').on('apply.daterangepicker', function(ev, picker) {
+				  console.log(picker.startDate.format('YYYY-MM-DD'));
+				  console.log(picker.endDate.format('YYYY-MM-DD'));
+				  
+				  var startDate = picker.startDate.format('YYYY-MM-DD');
+				  var endDate = picker.endDate.format('YYYY-MM-DD');
+				 
+				  location.href="http://localhost:8080/cost?startDate=" + startDate + "&endDate=" + endDate;
+
+				  
+				});
+		
+	});
+	</script>
+
+	<input type="text" name="datefilter" value="{{abc}}" />
+	<div id="main">
+		<div style="width: 50%;">
+			<canvas id="canvas"></canvas>
+
+		</div>
+
+
+		<br>
+		----------------------------------------------------------------------------------------------------------------------------------------------------------
+		<script>
+					var sum = 0;
+					{{#costsExplorer}}
+						{{#metricUsage}} 
+							{{total}}
+							sum+= {{total}};
+							
+						{{/metricUsage}}
+					{{/costsExplorer}}
+					document.write("<h2> SERVICE TOTAL : $" + sum  + "</h2>")
+					</script>
+		----------------------------------------------------------------------------------------------------------------------------------------------------------
+		<br>
+		<div style="position: absolute; top: 0; right: 0;">
+			<h2>Filtering</h2>
+			<li><a href="http://localhost:8080/cost">ALL</a></li>
+			{{#costsExplorer}} {{#filterList}} {{#filters}}
+
+			<li><a href="http://localhost:8080/cost?filter={{.}}">{{.}}</a></li>
+			{{/filters}} {{/filterList}} {{/costsExplorer}}
+		</div>
+
+
+		<div>
+
+
+			{{#costsExplorer}} {{#metricUsage}}
+			<h2>{{date}}</h2>
+			{{#metrics}}
+			<li>{{key}} : ${{amount}}</li> {{/metrics}}
+
+			<li>Total : ${{total}}</li> <br> {{/metricUsage}}
+			{{/costsExplorer}}
+
+
+		</div>
+
+
+
+		----------------------------------------------------------- <br>
+		<a href="http://localhost:8080/listEc2">인스턴스 목록</a> <br>
+		----------------------------------------------------------- <br>
+		<a href="http://localhost:8080/logout">로그아웃</a> <br>
+
+	</div>
+
+
+
+
 	<script>
 		var label = new Array();
 		var data = new Array();
 		var name='';
 		
-		{{#costs}}
-			label.push("{{date}}");
-			data.push("{{total}}");
-		{{/costs}}
+		{{#costsExplorer}}
+			{{#metricUsage}} 
+				label.push("{{date}}");
+				data.push("{{total}}");
+			{{/metricUsage}}
+		{{/costsExplorer}}
 	
 		var config = {
 			type : 'bar',
@@ -104,16 +194,6 @@
 			var canvas = new Chart(ctx, config);
 	</script>
 
-
-
-
-	-----------------------------------------------------------
-	<br>
-	<a href="http://localhost:8080/listEc2">인스턴스 목록</a>
-	<br> -----------------------------------------------------------
-	<br>
-	<a href="http://localhost:8080/logout">로그아웃</a>
-	<br>
 
 
 </body>

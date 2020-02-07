@@ -4,7 +4,11 @@ import java.util.Date;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
-
+/**
+ * 
+ * @author sjkwon
+ *
+ */
 @Configuration
 @ConfigurationProperties(prefix = "application", ignoreUnknownFields = false)
 public class ApplicationProperties {

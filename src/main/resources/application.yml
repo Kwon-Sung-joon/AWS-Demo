@@ -11,11 +11,12 @@ spring:
 # ami_id은 생성 할 인스턴스의 기본값
 # secureGroups 생성할 인스턴스에 연결할 보안그룹
 # accessKeyName 생성핳 인스턴스에 연결할 떄 사용할 키페어 이름
+ 
 application: 
   aws:
     username : Users
-    accessKeyId: myKeyId
-    accessKeySecret: myKeySecret 
+    accessKeyId: AKIA4ZXEMVK2ELZL7V72
+    accessKeySecret: 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 
     policy_arn: arn:aws:iam::aws:policy/AmazonEC2FullAccess 
     ami_id: ami-0bea7fd38fabe821a
     region: ap-northeast-2

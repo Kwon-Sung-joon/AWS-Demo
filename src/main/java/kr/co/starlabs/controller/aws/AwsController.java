@@ -182,13 +182,25 @@ public class AwsController {
 	}
 	
 	@RequestMapping("/cost")
-	public String cost(Model model, @RequestParam(required = false, value = "filter") String filter ) {
-		if(filter == null || filter == "all") {
+	public String cost(Model model, @RequestParam(required = false, value = "filter") String filter,
+			@RequestParam(required = false, value = "startDate") String startDate,
+			@RequestParam(required = false, value = "endDate") String endDate) {
+		if(filter == null) {
 			filter="all";
 		}
-		ArrayList<Object> result = awsService.cost(filter);
+		if(startDate == null) {
+			startDate ="2020-01-01";
+		}
+		if(endDate == null) {
+			//날짜가 없을 시 오늘 날짜로 지정
+			Date date = new Date();
+			String toDay = date.getYear()+1900 +"-"  + String.format("%02d", (date.getMonth()+1)) + "-" + String.format("%02d", (date.getDate()));
+			endDate = toDay;
+		}
+		ArrayList<Object> result = awsService.cost(filter , startDate, endDate);
 	
-		model.addAttribute("costs",result);
+		model.addAttribute("costsExplorer",result);
+		model.addAttribute("abc","abc");
 		return "cost";
 	}
 
