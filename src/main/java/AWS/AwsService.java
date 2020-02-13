@@ -1,4 +1,4 @@
-package kr.co.starlabs.service.aws;
+package AWS;
 
 import java.util.HashMap;
 
@@ -90,8 +90,6 @@ import software.amazon.awssdk.services.cloudwatchlogs.model.CreateLogGroupReques
 import software.amazon.awssdk.services.cloudwatchlogs.model.CreateLogGroupResponse;
 import software.amazon.awssdk.services.cloudwatchlogs.model.DescribeLogGroupsResponse;
 import software.amazon.awssdk.services.cloudwatchlogs.model.FilterLogEventsRequest;
-
-import kr.co.starlabs.config.ApplicationProperties;
 
 /**
  * 

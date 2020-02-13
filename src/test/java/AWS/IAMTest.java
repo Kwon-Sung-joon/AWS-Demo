@@ -1,4 +1,4 @@
-package kr.co.starlabs.cloudAWS;
+package AWS;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagementClientBuilder;
 import com.amazonaws.services.identitymanagement.model.CreateUserRequest;

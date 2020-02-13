@@ -1,4 +1,4 @@
-package kr.co.starlabs.cloudAWS;
+package AWS;
 
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;

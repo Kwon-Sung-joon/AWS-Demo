@@ -1,4 +1,4 @@
-package kr.co.starlabs;
+package AWS;
 
 
 import org.slf4j.Logger;

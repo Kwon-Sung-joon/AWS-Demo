@@ -1,4 +1,4 @@
-package kr.co.starlabs.cloudAWS;
+package AWS;
 
 import java.util.ArrayList;
 import java.util.HashMap;

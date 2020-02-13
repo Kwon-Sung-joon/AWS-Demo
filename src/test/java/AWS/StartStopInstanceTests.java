@@ -1,4 +1,4 @@
-package kr.co.starlabs.cloudAWS;
+package AWS;
 
 // snippet-start:[ec2.java2.start_stop_instance.complete]
 // snippet-start:[ec2.java2.start_stop_instance.import]

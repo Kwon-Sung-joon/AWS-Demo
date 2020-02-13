@@ -1,4 +1,4 @@
-package kr.co.starlabs.config;
+package AWS;
 
 import java.util.Date;
 
