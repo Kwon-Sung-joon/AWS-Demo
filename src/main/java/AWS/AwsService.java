@@ -135,7 +135,7 @@ public class AwsService
 
 		boolean done = false;
 
-		while (!done) 
+		while (!done)  
 		{
 			ListAttachedUserPoliciesResult responseAttachedUserPolicies = iam
 					.listAttachedUserPolicies(requestAttachedUserPolicies);
