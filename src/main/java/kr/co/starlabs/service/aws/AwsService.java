@@ -673,7 +673,6 @@ public class AwsService
 		ArrayList<Object> resultList = new ArrayList<>();
 		
 		// 함수를 호출했을 때의 시간을 endTime으로, startTime( = 인스턴스 시작시간) 부터 현재 시간까지의 정보
-
 		Date endTime = new Date();
 
 		// 지표 데이터를 가져올 간격( 기본값은 최소 5분, 세부 모니터링 활성화 시 1분 까지 가능)
@@ -691,13 +690,14 @@ public class AwsService
 		filter.setName("InstanceId");
 		filter.setValue(instance_id);
 
+		//메트릭데이터 요청 
 		GetMetricDataRequest md = new GetMetricDataRequest().withEndTime(endTime)
 				.withStartTime(applicationProperties.getAws().getStartTime()).withMetricDataQueries();
 
-		// 해당 지표를 가져옴
+		// AWS/EC2 에서 해당 인스턴스 아이디에서 해당 지표명을 가져옴.
 		Metric metric = new Metric().withNamespace("AWS/EC2").withDimensions(filter).withMetricName(metricName);
-
-		// 해당 지표의 값을 가죠온다.
+		
+		// 앞서 구한 해당 지표명과 함께 해당 시간 간격(기본 5분)의 평균값을 가져옴
 		MetricStat metricStat = new MetricStat().withMetric(metric).withPeriod(integer).withStat("Average");
 
 		// id는 임의 값
@@ -707,7 +707,6 @@ public class AwsService
 
 		GetMetricDataResult rms = cw.getMetricData(md);
 
-		// System.out.println(rms.getMetricDataResults());
 
 		// 해당 시간과 해당 값을 넘겨줌
 		for (int i = 0; i < rms.getMetricDataResults().get(0).getTimestamps().size(); i++) 
@@ -724,13 +723,19 @@ public class AwsService
 		return resultList;
 	}
 
+	/**
+	 * 인스턴스의 이벤트 정도 로그 확인 
+	 * @param instance_id
+	 * @return
+	 */
 	public ArrayList<Object> logEC2(String instance_id) 
 	{
 		ArrayList<Object> resultList = new ArrayList<>();
 
-		String rule_name = instance_id;
-		String logGroupName = "/aws/events/" + instance_id;
-		String accessKeyId = applicationProperties.getAws().getAccessKeyId();
+		
+		String rule_name = instance_id; //규칙명
+		String logGroupName = "/aws/events/" + instance_id; //로그그룹명
+		String accessKeyId = applicationProperties.getAws().getAccessKeyId(); 
 		String accessKeySecret = applicationProperties.getAws().getAccessKeySecret();
 
 		AwsBasicCredentials awsCreds = AwsBasicCredentials.create(accessKeyId, accessKeySecret);
@@ -750,6 +755,7 @@ public class AwsService
 
 		try 
 		{
+			//규칙 생성 
 			PutRuleRequest ruleRequest = PutRuleRequest.builder().name(rule_name).state(RuleState.ENABLED)
 					.eventPattern(eventPattern).build();
 
@@ -766,7 +772,7 @@ public class AwsService
 
 		try 
 		{
-
+			//로그그룹 생성 
 			CreateLogGroupRequest logRequest = CreateLogGroupRequest.builder().logGroupName(logGroupName).build();
 			CreateLogGroupResponse logResponse = cwl.createLogGroup(logRequest);
 
@@ -794,7 +800,7 @@ public class AwsService
 
 		try 
 		{
-			// 앞서 생성한 규칙으로 타겟(로그그룹)연결
+			// 앞서 생성한 규칙으로 타겟(로그그룹)과 연결
 			// logArn은 위에서 가져온 로그 그룹의 arn
 			Target target = Target.builder().arn(applicationProperties.getAws().getLogArn()).id(instance_id).build();
 			PutTargetsRequest targetRequest = PutTargetsRequest.builder().targets(target).rule(rule_name).build();
@@ -804,12 +810,14 @@ public class AwsService
 			FilterLogEventsRequest filterLogEventsRequest = FilterLogEventsRequest.builder().logGroupName(logGroupName)
 					.build();
 
+			
 			int logLimits = cwl.filterLogEvents(filterLogEventsRequest).events().size();
 			for (int i = 0; i < logLimits; i++) 
 			{
 
-				System.out.println(cwl.filterLogEvents(filterLogEventsRequest).events().get(i).message());
+				//System.out.println(cwl.filterLogEvents(filterLogEventsRequest).events().get(i).message());
 
+				//이 샘플에서는 인스턴스의 정확한 정지 시간만을 알기 위해 해당 데이터에서 시간 값만 가져옴 
 				Date time = new Date(cwl.filterLogEvents(filterLogEventsRequest).events().get(i).timestamp());
 
 				Map<String, Object> resultMap = new HashMap<>();
@@ -869,6 +877,7 @@ public class AwsService
 			//해당 서비스의 요금만을 나타낼 수 있다.
 			dimensions.withKey(com.amazonaws.services.costexplorer.model.Dimension.SERVICE);
 			dimensions.withValues(filter);
+			
 			expression.withDimensions(dimensions);
 			
 			awsCERequest.withFilter(expression);
@@ -974,6 +983,7 @@ public class AwsService
 			
 			//앞서 구한 필터링할 수 있는 데이터들을 저장
 			filters.put("filters", filterValues);
+			
 			costsMap.put("filterList", filters);
 
 			costsMap.put("metricUsage", metricsAndUsage);
@@ -986,4 +996,6 @@ public class AwsService
 		}
 		return costsResult;
 	}
+	
+	
 }
