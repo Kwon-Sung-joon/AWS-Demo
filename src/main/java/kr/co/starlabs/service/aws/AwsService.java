@@ -29,6 +29,7 @@ import com.amazonaws.services.costexplorer.model.DimensionValues;
 import com.amazonaws.services.costexplorer.model.Expression;
 import com.amazonaws.services.costexplorer.model.GetCostAndUsageRequest;
 import com.amazonaws.services.costexplorer.model.GetCostAndUsageResult;
+import com.amazonaws.services.costexplorer.model.GetCostForecastRequest;
 import com.amazonaws.services.costexplorer.model.GetDimensionValuesRequest;
 import com.amazonaws.services.costexplorer.model.GetDimensionValuesResult;
 import com.amazonaws.services.costexplorer.model.Granularity;
@@ -112,12 +113,12 @@ public class AwsService
 	 * @param username
 	 * @return
 	 */
-
 	public Map<String, Object> createUser(String username) 
 	{
 
 		Map<String, Object> resultMap = new HashMap<>();
-
+		
+		//처음 IAM 사용자를 생성하기 위해서는 로컬에 저장되어있는 자격증명 파일을 사용하여 생성한다. 해당 자격증명 파일에는 IAM Full Access 정책이 추가되어있는 계정이여야만 한다. 
 		AmazonIdentityManagement iam = AmazonIdentityManagementClientBuilder.defaultClient();
 		// IAM 유저 생성
 		CreateUserRequest requestCreateUser = new CreateUserRequest().withUserName(username);
@@ -164,7 +165,7 @@ public class AwsService
 
 		iam.attachUserPolicy(attach_request);
 
-		// 정책 2개 추가 데모.
+		// CloudWatch, Events, Cost Explorer 정책을 추가하기 위해여 해당 정책의 arn을 가져와 정책을 연결한다. 
 		AttachUserPolicyRequest attach_request2 = new AttachUserPolicyRequest().withUserName(username)
 				.withPolicyArn("arn:aws:iam::aws:policy/CloudWatchLogsFullAccess");
 		
@@ -175,15 +176,14 @@ public class AwsService
 
 		iam.attachUserPolicy(attach_request3);
 		
+		// Cost Explorer는 AWS 관리 정책이 아니고 사용자 관리 정책이기 때문에 해당 계정에서 Cost Explorer 정책을 추가 하여야만 사용할 수 있다. 
+		// policy 앞 부분의 숫자는 계정을 나타내는데, 이는 현재 로컬 자격증명 파일에 저장되어있는 계정이여야만 한다. 
+
 		AttachUserPolicyRequest attach_request4 = new AttachUserPolicyRequest().withUserName(username)
 				.withPolicyArn("arn:aws:iam::879873534644:policy/AWSCostExplorerServiceFullAccess");
 
 		iam.attachUserPolicy(attach_request4);
 
-		
-		
-
-		System.out.println("Successfully attached policy " + policy_arn + " to user " + username);
 
 		// 생성한 유저의 액세스 키 ID,시크릿 키를 기본 값으로 지정
 		applicationProperties.getAws().setUsername(username);
@@ -206,11 +206,16 @@ public class AwsService
 		String policy_arn = applicationProperties.getAws().getPolicy_arn();
 		String access_key = applicationProperties.getAws().getAccessKeyId();
 
-		/*
-		 * 유저 삭제 순서 : 정책 제거 -> 액세스 키 제거 -> 유저 삭제
+
+		/**
+		 * 기존 유저가 아닌, 앞서 새로 생성한 유저를 삭제하기 위해서는 가장 먼저 유저에 연결되어있는 정책을 모두 제거한뒤, 
+		 * 유저를 생성하며 함께 생성한 액세스 키를 삭제해야만 유저를 삭제할 수 있다. 
 		 */
+		
+		//생성했던 사용자를 삭제할 것이기 때문에, 로컬의 자격증명 파일을 사용한다.
 		final AmazonIdentityManagement iam = AmazonIdentityManagementClientBuilder.defaultClient();
 
+		//정책을 모두 제거함
 		DetachUserPolicyRequest requestDetachUserPolicy = new DetachUserPolicyRequest().withUserName(username)
 				.withPolicyArn(policy_arn);
 
@@ -233,14 +238,12 @@ public class AwsService
 		
 			
 
-		System.out.println("Successfully detached policy " + policy_arn + " from role " + username);
-
+		//액세스키 제거 
 		DeleteAccessKeyRequest request = new DeleteAccessKeyRequest().withAccessKeyId(access_key)
 				.withUserName(username);
 
 		DeleteAccessKeyResult response = iam.deleteAccessKey(request);
 
-		System.out.println("Successfully deleted access key " + access_key + " from user " + username);
 		DeleteUserRequest requestDeleteUser = new DeleteUserRequest().withUserName(username);
 
 		try 
@@ -254,19 +257,21 @@ public class AwsService
 
 	}
 
-	/**
-	 * ec2 클라이언트 생성자
-	 * 
+	/**EC2 클라이언트 생성 함수 
+	 * EC2 서비스를 사용하기 위해서는 매번 클라이언트 빌더를 생성해야한다.
 	 * @return
 	 */
 	public AmazonEC2 ec2Client() 
 	{
 
+		//현재 설정되어있는 액세스 ID, 시크릿키, 그리고 리전을 사용하기 위하여 받아온다.
 		String accessKeyId = applicationProperties.getAws().getAccessKeyId();
 		String accessKeySecret = applicationProperties.getAws().getAccessKeySecret();
 		String region = applicationProperties.getAws().getRegion();
 
+		//EC2 빌더를 사용하기 위해 사용할 자격증명 설정
 		BasicAWSCredentials awsCreds = new BasicAWSCredentials(accessKeyId, accessKeySecret);
+		//EC2 클라이언트 빌더 생성  
 		AmazonEC2 ec2 = AmazonEC2ClientBuilder.standard().withRegion(region)
 				.withCredentials(new AWSStaticCredentialsProvider(awsCreds)).build();
 		return ec2;
@@ -274,9 +279,6 @@ public class AwsService
 
 	/**
 	 * 현재 계정에 있는 EC2 인스턴스 목록 출력
-	 * 
-	 * 
-	 * 
 	 * @return
 	 */
 
@@ -285,6 +287,7 @@ public class AwsService
 		ArrayList<Object> resultList = new ArrayList<>();
 		int i = 0;
 
+		//EC2 클라이언트 함수를 호출하여 빌더를 받아온다.
 		AmazonEC2 ec2 = ec2Client();
 
 		DescribeInstancesRequest request = new DescribeInstancesRequest();
@@ -650,7 +653,7 @@ public class AwsService
 			requestMetricLst.setNextToken(response.getNextToken());
 
 			if (response.getNextToken() == null) 
-			{
+			{		
 				flag = true;
 			}
 		}
@@ -668,7 +671,7 @@ public class AwsService
 	{
 
 		ArrayList<Object> resultList = new ArrayList<>();
-
+		
 		// 함수를 호출했을 때의 시간을 endTime으로, startTime( = 인스턴스 시작시간) 부터 현재 시간까지의 정보
 
 		Date endTime = new Date();
@@ -687,10 +690,6 @@ public class AwsService
 		Dimension filter = new Dimension();
 		filter.setName("InstanceId");
 		filter.setValue(instance_id);
-
-		// startTime Demo.
-		// Date startTime = new Date(endTime.getTime());
-		// startTime.setMinutes(50);
 
 		GetMetricDataRequest md = new GetMetricDataRequest().withEndTime(endTime)
 				.withStartTime(applicationProperties.getAws().getStartTime()).withMetricDataQueries();
@@ -719,8 +718,7 @@ public class AwsService
 
 			resultMap.put("time", rms.getMetricDataResults().get(0).getTimestamps()
 					.get(rms.getMetricDataResults().get(0).getTimestamps().size() - (1 + i)));
-
-			resultList.add(i, resultMap);
+			
 		}
 
 		return resultList;
@@ -739,12 +737,10 @@ public class AwsService
 
 		CloudWatchEventsClient cwe = CloudWatchEventsClient.builder()
 				.credentialsProvider(StaticCredentialsProvider.create(awsCreds)).build();
-		// 기본 루트 클라이언트로 생성하므로 수정 필요
 		CloudWatchLogsClient cwl = CloudWatchLogsClient.builder()
 				.credentialsProvider(StaticCredentialsProvider.create(awsCreds)).region(Region.AP_NORTHEAST_2).build();
 
 		// 로그그룹 생성 => 인스턴스 id로 생성
-
 		// 매개변수 instance_id 를 eventPattern 에 넣기
 		// state를 모두 확인할지, 받아서 확인할지 체크
 		String eventPattern = "{\r\n" + "  \"source\": [\r\n" + "    \"aws.ec2\"\r\n" + "  ],\r\n"
@@ -784,7 +780,7 @@ public class AwsService
 		} finally 
 		{
 
-			// 로그 데이터를 가져올 때 arn이 필요하므로 arn 가져오기
+			// 로그 데이터를 가져올 때 arn이 필요하므로 arn 저장
 			DescribeLogGroupsResponse descLogs = cwl.describeLogGroups();
 			for (int i = 0; i < descLogs.logGroups().size(); i++) 
 			{
@@ -796,7 +792,6 @@ public class AwsService
 			}
 		}
 
-		// arn = 로그그룹 arn id= ??
 		try 
 		{
 			// 앞서 생성한 규칙으로 타겟(로그그룹)연결
@@ -825,6 +820,7 @@ public class AwsService
 
 			}
 
+		
 		} catch (Exception e) 
 		{
 			System.out.println(e);
@@ -835,24 +831,21 @@ public class AwsService
 		return resultList;
 	}
 
+	
+
+	
 	/**
-	 * CostExplorer를 사요하기 위해서는 정책을 만들어줘야함. 콘솔에서 정책 생성 후 현재 자격증명파일에 정책 부여
-	 * 
-	 * @param endDate
+	 * CostExplorer를 사요하기 위해서는 정책을 만들어줘야함. 기본으로 제공해주는 샘플이 아니기 떄문에 콘솔에서 정책 생성 후 Cost Explorer Service 권한 추가 후 현재 자격 증명 파일에 정책 추가 
+	 * @param filter = 필터링 값
 	 * @param startDate
-	 * 
+	 * @param endDate
 	 * @return
 	 */
 	public ArrayList<Object> cost(String filter, String startDate, String endDate) 
 	{
-
-		/**
-		 * 리턴 할 데이터 구조
-		 * 
-		 */
-
+		
 		ArrayList<Object> costsResult = new ArrayList<>();
-
+		
 		Map<String, Object> costsMap = new HashMap<>();
 
 		Map<String, Object> filters = new HashMap<>();
@@ -861,39 +854,52 @@ public class AwsService
 		Expression expression = new Expression();
 		DimensionValues dimensions = new DimensionValues();
 
+		//CostAndUsage 요청 ( TimePeriod 필수 ) , 
+		// 일별, 혼합비용 , 서비스로 그룹화하여 요청 
 		final GetCostAndUsageRequest awsCERequest = new GetCostAndUsageRequest()
 				.withTimePeriod(new DateInterval().withStart(startDate).withEnd(endDate))
-				.withGranularity(Granularity.DAILY).withMetrics("BlendedCost")
+				.withGranularity(Granularity.DAILY).withMetrics("BLENDED_COST")
 				.withGroupBy(new GroupDefinition().withType("DIMENSION").withKey("SERVICE"));
 
+		
+		//필터링이 있을 시 처리 서비스를 필터 값으로 필터링하여 데이터 필터링
 		if (!(filter.equalsIgnoreCase("all"))) 
 		{
+			//필터값이 예를 들어 Cloud Watch일 시 , 서비스 목록에서 CloudWatch로 필터링하여 
+			//해당 서비스의 요금만을 나타낼 수 있다.
 			dimensions.withKey(com.amazonaws.services.costexplorer.model.Dimension.SERVICE);
 			dimensions.withValues(filter);
 			expression.withDimensions(dimensions);
-
+			
 			awsCERequest.withFilter(expression);
 		}
-
+		
 		try 
 		{
+			//CostExplorer 생성자에 사용 할 자격증명 생성 현재 저장되어 있는 ID,Secret 사용
 			BasicAWSCredentials awsCreds = new BasicAWSCredentials(applicationProperties.getAws().getAccessKeyId(),
 					applicationProperties.getAws().getAccessKeySecret());
+			
+			
 			AWSCostExplorer ce = AWSCostExplorerClientBuilder.standard().withRegion("ap-northeast-2")
 					.withCredentials(new AWSStaticCredentialsProvider(awsCreds)).build();
-
-			// 필터링 목록 리턴값에 추가
+			
+			// 현재 Dimension (SERVICE) 의 값들 추가 
+			// 즉 현재 지정한 날짜에 사용된 데이터들의 키 값( e.g. EC2, Cloud Watch)을 가져옴
 			GetDimensionValuesRequest diRequest = new GetDimensionValuesRequest()
 					.withTimePeriod(new DateInterval().withStart(startDate).withEnd(endDate)).withDimension("SERVICE");
+			
 			GetDimensionValuesResult result = ce.getDimensionValues(diRequest);
-
+			
 			ArrayList<Object> filterValues = new ArrayList<>();
+
+			
+			//필터링 할 수 있는 값들을 리스트에 추가 
 			result.getDimensionValues().forEach(action -> 
 			{
 				filterValues.add(action.getValue());
 			});
 
-			// keyValues.add(dimensionValuesMap);
 
 			boolean done = false;
 
@@ -902,24 +908,34 @@ public class AwsService
 
 			while (!done) 
 			{
+				
+				//CostAndUsage 요청의 결과를 받음 
 				GetCostAndUsageResult ceResult = ce.getCostAndUsage(awsCERequest);
-
+				
+				//타임 별로 데이터 확인( 일 별로 지정 했기 때문에 일별로 사용한 데이터들의 값들을 볼 수 있음)
 				for (ResultByTime resultByTime : ceResult.getResultsByTime()) 
 				{
 					ArrayList<Object> metric = new ArrayList<>();
 					Map<String, Object> metricData = new HashMap<>();
 
 					double sum = 0;
-
-					// e.g. Groups : [{Keys: [AWS Glue],Metrics: {BlendedCost={Amount: 0,Unit:
-					// USD}}}]
+	
+					
+					
+					// 일별로 데이터를 확인하며 그룹안에 있는 데이터 확인 
+					// 서비스별로 그룹화하였기 떄문에 서비스를 키 값으로, 메트릭은 사용금액과 화폐 단위를 보여준다.
+					// e.g. Groups : [{Keys: [AWS Glue],Metrics: {BlendedCost={Amount: 0,Unit: USD}}}]
 					for (Group groups : resultByTime.getGroups()) 
 					{
 
 						Map<String, Object> metricKeysAndAmount = new HashMap<>();
-						// e.g. Metrics = [{ amount : 0, keys=[TAX]}
+						// e.g. Metrics = [{ amount : 0, keys=[TAX]} 
+						// Metrics는 위와 같은 형식의 데이터 이므로 해당 값을 가져오기 위하여 values 사용 
 						String metrics = groups.getMetrics().values().toString();
 
+						
+						//데이터를 넘기기 위해 데이터 처리 부분 
+						
 						// amount 값만 저장
 						String amount = metrics.substring(metrics.indexOf("Amount") + targetAmount.length() + 2,
 								metrics.indexOf("Unit") - 1);
@@ -933,37 +949,38 @@ public class AwsService
 						metricKeysAndAmount.put("key",
 								groups.getKeys().toString().substring(1, groups.getKeys().toString().length() - 1));
 
+						//서비스 별로 금액을 모두 더하여 sum으로 저장
 						sum += Double.parseDouble(amount);
 
 						metric.add(metricKeysAndAmount);
 
 					}
 
+					//metricData에는 각 일별, 어떤 서비르를 사용했는지, 일별 총 금액을 넣어준다.
 					metricData.put("date", resultByTime.getTimePeriod().getStart());
 					metricData.put("metrics", metric);
 					metricData.put("total", String.format("%.3f", sum));
-
 					metricsAndUsage.add(metricData);
 
 				}
-
-				awsCERequest.setNextPageToken(ceResult.getNextPageToken());
-
+				//더이상 데이터가 없을 시 종료
+				awsCERequest.setNextPageToken(ceResult.getNextPageToken());	
+				
 				if (ceResult.getNextPageToken() == null) 
 				{
 					done = true;
 				}
 			}
-			// keyValues.add(dimensionValuesMap);
-
+			
+			//앞서 구한 필터링할 수 있는 데이터들을 저장
 			filters.put("filters", filterValues);
-			// keyValuesMap.put("keyValues",keyValues);
-
-			costsMap.put("metricUsage", metricsAndUsage);
 			costsMap.put("filterList", filters);
 
-			costsResult.add(costsMap);
+			costsMap.put("metricUsage", metricsAndUsage);
 
+			//값을 넘겨줄 떄에는 리스트 안에 들어있는 두개의 맵 (필터 리스트와 사용량 리스트) 리턴
+			costsResult.add(costsMap);
+			
 		} catch (final Exception e) {
 			System.out.println(e);
 		}

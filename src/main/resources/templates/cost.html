@@ -43,12 +43,44 @@ input {
 </head>
 <body>
 
-
-	<script type="text/javascript">
-	$(function() {
+<!-- 날짜 지정   -->
+	<script>
 	
-	  $('input[name="datefilter"]').daterangepicker({
+	
+			var getParameter = function (param) {
+				var returnValue;
+				var url = location.href; 
+				var parameters = (url.slice(url.indexOf('?') + 1, url.length)).split('&'); 
+				for (var i = 0; i < parameters.length; i++)
+				{ 
+						var varName = parameters[i].split('=')[0];
+					if (varName.toUpperCase() == param.toUpperCase()) 
+					{ 
+						returnValue = parameters[i].split('=')[1]; 
+						return decodeURIComponent(returnValue); 						
+					}
+				}
+			};
 
+			if( !(getParameter('startDate') === undefined) ) {
+				var startDate = getParameter('startDate').split('-');
+				var startDate = startDate[1] +"/" + startDate[2] + "/" + startDate[0];
+			}else{
+				var startDate = "02/02/2020";
+			}
+				
+			if( !(getParameter('endDate') === undefined) ) {
+				var endDate = getParameter('endDate').split('-');
+				var endDate = endDate[1] +"/" + endDate[2] + "/" + endDate[0];
+			}else{
+				var endDate = "02/13/2020";
+			}
+			
+			
+		
+	$(function() {
+	  $('input[name="datefilter"]').daterangepicker({
+		  
 			    ranges: {
 			        'Today': [moment(), moment()],
 			        'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
@@ -59,35 +91,33 @@ input {
 			    },
 			    "showCustomRangeLabel": false,
 			    "alwaysShowCalendars": true,
-			    "startDate": "01/01/2020",
-			    "endDate": "01/02/2020"
-			    
-			}),
+			    "startDate": startDate,
+			    "endDate": endDate,
+			
+	  }),
 		$('input[name="datefilter"]').on('apply.daterangepicker', function(ev, picker) {
-				  console.log(picker.startDate.format('YYYY-MM-DD'));
-				  console.log(picker.endDate.format('YYYY-MM-DD'));
-				  
+				  //console.log(picker.startDate.format('YYYY-MM-DD'));
+				  //console.log(picker.endDate.format('YYYY-MM-DD'));
 				  var startDate = picker.startDate.format('YYYY-MM-DD');
 				  var endDate = picker.endDate.format('YYYY-MM-DD');
-				 
-				  location.href="http://localhost:8080/cost?startDate=" + startDate + "&endDate=" + endDate;
-
-				  
-				});
-		
-	});
+				  location.href="http://localhost:8080/cost?startDate=" + startDate + "&endDate=" + endDate + "&filter=" + "all"  ;
+		});	  
+	  });
 	</script>
 
+
+	<!--  날짜 필터링  -->
 	<input type="text" name="datefilter" value="{{abc}}" />
+	
+	<!--  차트 출력 -->
 	<div id="main">
 		<div style="width: 50%;">
 			<canvas id="canvas"></canvas>
 
 		</div>
-
-
 		<br>
-		----------------------------------------------------------------------------------------------------------------------------------------------------------
+		-----------------------------------------------------------------------
+		<!-- 차트 설정  -->
 		<script>
 					var sum = 0;
 					{{#costsExplorer}}
@@ -98,45 +128,37 @@ input {
 						{{/metricUsage}}
 					{{/costsExplorer}}
 					document.write("<h2> SERVICE TOTAL : $" + sum  + "</h2>")
+					
 					</script>
-		----------------------------------------------------------------------------------------------------------------------------------------------------------
-		<br>
+		-------------------------------------------------------------------<br>
 		<div style="position: absolute; top: 0; right: 0;">
 			<h2>Filtering</h2>
 			<li><a href="http://localhost:8080/cost">ALL</a></li>
 			{{#costsExplorer}} {{#filterList}} {{#filters}}
-
-			<li><a href="http://localhost:8080/cost?filter={{.}}">{{.}}</a></li>
+						
+		<li><a href="http://localhost:8080/cost?filter={{.}}">{{.}}</a></li>
 			{{/filters}} {{/filterList}} {{/costsExplorer}}
 		</div>
 
-
 		<div>
-
-
 			{{#costsExplorer}} {{#metricUsage}}
 			<h2>{{date}}</h2>
 			{{#metrics}}
 			<li>{{key}} : ${{amount}}</li> {{/metrics}}
-
-			<li>Total : ${{total}}</li> <br> {{/metricUsage}}
+			----------------------------------------------------------- <br>
+			<h3>Total : ${{total}}</h3> <br> {{/metricUsage}}
+			
+			
 			{{/costsExplorer}}
 
-
 		</div>
-
-
-
 		----------------------------------------------------------- <br>
 		<a href="http://localhost:8080/listEc2">인스턴스 목록</a> <br>
 		----------------------------------------------------------- <br>
 		<a href="http://localhost:8080/logout">로그아웃</a> <br>
 
 	</div>
-
-
-
-
+	<!--  차트설정  -->
 	<script>
 		var label = new Array();
 		var data = new Array();
@@ -189,12 +211,9 @@ input {
 				}
 			}
 		};
-
 			var ctx = document.getElementById("canvas").getContext('2d');
 			var canvas = new Chart(ctx, config);
 	</script>
-
-
 
 </body>
 

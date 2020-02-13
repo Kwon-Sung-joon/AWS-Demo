@@ -31,13 +31,22 @@ public class AwsController {
 		return "login";
 	}
 
+	/**
+	 * 새로운 유저 생성 시 인스턴스 목록을 확인하기까지 지연시간이 있으므로 로딩 페이지로 연결  
+	 * @return
+	 * @throws Exception
+	 */
 	@RequestMapping("/loading")
 	public String loading() throws Exception {
 
 		return "loading";
 	}
 
-	// user 생성
+	/**
+	 * IAM 유저 생성 (로그인)
+	 * @param model
+	 * @return
+	 */
 	@RequestMapping("/createUser")
 	public String createUser(Model model) {
 		String username = "User_" + UUID.randomUUID().toString();
@@ -47,6 +56,11 @@ public class AwsController {
 		return "create";
 	}
 
+	/**
+	 * IAM 유저 삭제 ( 로그아웃 )
+	 * @param model
+	 * @return
+	 */
 	@RequestMapping("/logout")
 	public String logout(Model model) {
 
@@ -55,6 +69,11 @@ public class AwsController {
 		return "login";
 	}
 
+	/**
+	 * 현재 계정의 EC2 인스턴스 목록
+	 * @param model
+	 * @return
+	 */
 	@RequestMapping("/listEc2")
 	public String listEc2(Model model) {
 
@@ -65,6 +84,11 @@ public class AwsController {
 		return "list";
 	}
 
+	/**
+	 * EC2 인스턴스 생성
+	 * @param model
+	 * @return
+	 */
 	@RequestMapping("/createEc2")
 	public String createEc2(Model model) {
 
@@ -77,7 +101,7 @@ public class AwsController {
 	}
 
 	/**
-	 * 
+	 * EC2 인스턴스 시작
 	 * @param model
 	 * @param instance_id
 	 * @return
@@ -92,7 +116,7 @@ public class AwsController {
 	}
 
 	/**
-	 * 
+	 * EC2 인스턴스 정지
 	 * @param model
 	 * @param instance_id
 	 * @return
@@ -107,7 +131,7 @@ public class AwsController {
 	}
 
 	/**
-	 * 
+	 *  EC2 인스턴스 종료 (삭제)
 	 * @param model
 	 * @param instance_id
 	 * @return
@@ -121,11 +145,11 @@ public class AwsController {
 	}
 
 	/**
-	 * 
+	 * EC2 인스턴스 세부 정보
 	 * @param model
 	 * @param instance_id
 	 * @return
-	 */
+	 */	
 	@RequestMapping("/descEc2")
 	public String descEc2(Model model, @RequestParam("instance_id") String instance_id) {
 		logger.debug("instance_id [{}]", instance_id);
@@ -144,6 +168,12 @@ public class AwsController {
 		return "main";
 	}
 
+	/**
+	 * EC2 인스턴스 이벤트 로그
+	 * @param model
+	 * @param instance_id
+	 * @return
+	 */
 	@RequestMapping("/logEc2")
 	public String logEc2(Model model, @RequestParam("instance_id") String instance_id) {
 		logger.debug("instance_id [{}]", instance_id);
@@ -158,6 +188,12 @@ public class AwsController {
 		return "log";
 	}
 
+	/**
+	 * EC2 인스턴스를 모니터링 할 수 있는 항목 리스트
+	 * @param model
+	 * @param instance_id
+	 * @return
+	 */
 	@RequestMapping("/monitoringList")
 	public String monitoringList(Model model, @RequestParam("instance_id") String instance_id) {
 		logger.debug("instance_id [{}]", instance_id);
@@ -168,6 +204,13 @@ public class AwsController {
 		return "monitoringList";
 	}
 
+	/**
+	 * EC2 인스턴스 모니터링 차트
+	 * @param model
+	 * @param instance_id
+	 * @param metricName
+	 * @return
+	 */
 	@RequestMapping("/monitoringDesc")
 	public String monitoringDesc(Model model, @RequestParam("instance_id") String instance_id,
 			@RequestParam("metricName") String metricName) {
@@ -181,15 +224,25 @@ public class AwsController {
 
 	}
 	
+	/**
+	 * 현재 계정의 비용탐색
+	 * @param model
+	 * @param filter
+	 * @param startDate
+	 * @param endDate
+	 * @return
+	 */
 	@RequestMapping("/cost")
 	public String cost(Model model, @RequestParam(required = false, value = "filter") String filter,
 			@RequestParam(required = false, value = "startDate") String startDate,
 			@RequestParam(required = false, value = "endDate") String endDate) {
+		
+		//필터, 날짜가 없을 시 기본으로 지정 
 		if(filter == null) {
 			filter="all";
 		}
 		if(startDate == null) {
-			startDate ="2020-01-01";
+			startDate ="2020-02-02";
 		}
 		if(endDate == null) {
 			//날짜가 없을 시 오늘 날짜로 지정
@@ -200,7 +253,7 @@ public class AwsController {
 		ArrayList<Object> result = awsService.cost(filter , startDate, endDate);
 	
 		model.addAttribute("costsExplorer",result);
-		model.addAttribute("abc","abc");
+		
 		return "cost";
 	}
 
